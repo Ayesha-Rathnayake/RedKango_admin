@@ -1,0 +1,289 @@
+<!-- Page Header -->
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Orders</h1>
+  <p class="text-sm text-gray-500 mt-1">Track and manage all customer product orders.</p>
+</div>
+
+<!-- Orders Table Card -->
+<div class="bg-white rounded-2xl shadow-sm border p-4 sm:p-6">
+
+  <!-- Card Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div>
+      <h3 class="text-base font-semibold text-gray-800">All Orders</h3>
+      <p class="text-xs text-gray-400">Recent customer orders</p>
+    </div>
+    <button
+      (click)="openAddModal()"
+      class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center justify-center gap-2">
+      <i class="fas fa-plus text-xs"></i>
+      Add Order
+    </button>
+  </div>
+
+  <!-- Desktop Table (hidden on mobile) -->
+  <div class="hidden sm:block overflow-x-auto">
+    <table class="w-full text-sm">
+
+      <thead>
+        <tr class="text-left border-b">
+          <th class="pb-3 text-xs text-gray-400 font-medium">Order ID</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Customer</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Product</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Quantity</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Unit Price</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Total</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Status</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        <tr *ngFor="let o of orders" class="hover:bg-gray-50 transition">
+
+          <td class="py-4 font-semibold text-gray-700">{{ o.orderId }}</td>
+
+          <td class="py-4">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {{ o.customer.charAt(0) }}
+              </div>
+              <span class="text-gray-600">{{ o.customer }}</span>
+            </div>
+          </td>
+
+          <td class="py-4 text-gray-600">{{ o.product }}</td>
+
+          <td class="py-4">
+            <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold">
+              × {{ o.quantity }}
+            </span>
+          </td>
+
+          <td class="py-4 text-gray-500">LKR {{ o.unitPrice | number }}</td>
+
+          <td class="py-4 font-semibold text-gray-700">
+            LKR {{ (o.unitPrice * o.quantity) | number }}
+          </td>
+
+          <td class="py-4">
+            <span
+              class="px-3 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="{
+                'bg-green-100 text-green-700':   o.status === 'Delivered',
+                'bg-blue-100 text-blue-700':     o.status === 'Processing',
+                'bg-yellow-100 text-yellow-700': o.status === 'Pending',
+                'bg-red-100 text-red-600':       o.status === 'Cancelled'
+              }">
+              {{ o.status }}
+            </span>
+          </td>
+
+          <td class="py-4">
+            <div class="flex items-center gap-1">
+              <button
+                (click)="openEditModal(o)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition">
+                <i class="fas fa-pen text-gray-400 hover:text-green-600"></i>
+              </button>
+              <button
+                (click)="deleteOrder(o.orderId)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition">
+                <i class="fas fa-trash text-gray-400 hover:text-red-500"></i>
+              </button>
+            </div>
+          </td>
+
+        </tr>
+      </tbody>
+
+    </table>
+  </div>
+
+  <!-- Mobile Cards (visible only on mobile) -->
+  <div class="sm:hidden space-y-3">
+    <div
+      *ngFor="let o of orders"
+      class="border border-gray-100 rounded-xl p-4">
+
+      <!-- Top row: Order ID + Status + Actions -->
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-bold text-gray-700">{{ o.orderId }}</span>
+        <div class="flex items-center gap-2">
+          <span
+            class="px-2.5 py-1 rounded-full text-xs font-semibold"
+            [ngClass]="{
+              'bg-green-100 text-green-700':   o.status === 'Delivered',
+              'bg-blue-100 text-blue-700':     o.status === 'Processing',
+              'bg-yellow-100 text-yellow-700': o.status === 'Pending',
+              'bg-red-100 text-red-600':       o.status === 'Cancelled'
+            }">
+            {{ o.status }}
+          </span>
+          <button
+            (click)="openEditModal(o)"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-green-50 transition">
+            <i class="fas fa-pen text-gray-400 text-xs hover:text-green-600"></i>
+          </button>
+          <button
+            (click)="deleteOrder(o.orderId)"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 transition">
+            <i class="fas fa-trash text-gray-400 text-xs hover:text-red-500"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Customer -->
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+          {{ o.customer.charAt(0) }}
+        </div>
+        <span class="text-sm font-medium text-gray-700">{{ o.customer }}</span>
+      </div>
+
+      <!-- Product + Quantity -->
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-500">{{ o.product }}</span>
+        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold">
+          × {{ o.quantity }}
+        </span>
+      </div>
+
+      <!-- Unit Price + Total -->
+      <div class="flex items-center justify-between pt-2 border-t border-gray-50">
+        <span class="text-xs text-gray-400">
+          LKR {{ o.unitPrice | number }} / unit
+        </span>
+        <span class="text-sm font-bold text-green-600">
+          LKR {{ (o.unitPrice * o.quantity) | number }}
+        </span>
+      </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="orders.length === 0" class="py-12 text-center text-gray-400">
+      <i class="fas fa-box-open text-3xl mb-3 block text-gray-200"></i>
+      No orders yet.
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Add / Edit Modal -->
+<div
+  *ngIf="showModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4">
+
+  <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[90vh] overflow-y-auto p-5 sm:p-8">
+
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between mb-5 sm:mb-6">
+      <h2 class="text-lg sm:text-xl font-bold text-gray-800">
+        {{ isEditing ? 'Edit Order' : 'Add New Order' }}
+      </h2>
+      <button
+        (click)="closeModal()"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Fields -->
+    <div class="space-y-4">
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Order ID</label>
+        <input
+          type="text"
+          [(ngModel)]="newOrder.orderId"
+          [disabled]="isEditing"
+          placeholder="e.g. OR005"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 disabled:bg-gray-50 disabled:text-gray-400"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Customer Name</label>
+        <input
+          type="text"
+          [(ngModel)]="newOrder.customer"
+          placeholder="Full name"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Product</label>
+        <select
+          [(ngModel)]="newOrder.product"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+          <option value="">Select a product</option>
+          <option value="Sleeping Bag">Sleeping Bag</option>
+          <option value="Camping Stove">Camping Stove</option>
+          <option value="Camping Cookware Set">Camping Cookware Set</option>
+          <option value="Camping Backpack">Camping Backpack</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Quantity</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.quantity"
+            min="1"
+            placeholder="1"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Unit Price (LKR)</label>
+          <input
+            type="number"
+            [(ngModel)]="newOrder.unitPrice"
+            placeholder="0"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+          />
+        </div>
+      </div>
+
+      <!-- Calculated Total -->
+      <div class="bg-gray-50 rounded-lg px-4 py-3 flex items-center justify-between">
+        <span class="text-xs text-gray-500 font-medium">Order Total</span>
+        <span class="text-sm font-bold text-green-600">
+          LKR {{ (newOrder.unitPrice * newOrder.quantity) | number }}
+        </span>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+        <select
+          [(ngModel)]="newOrder.status"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+          <option value="Pending">Pending</option>
+          <option value="Processing">Processing</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 mt-6">
+      <button
+        (click)="saveOrder()"
+        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition">
+        {{ isEditing ? 'Update Order' : 'Add Order' }}
+      </button>
+      <button
+        (click)="closeModal()"
+        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition">
+        Cancel
+      </button>
+    </div>
+
+  </div>
+</div>
