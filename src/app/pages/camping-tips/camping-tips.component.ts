@@ -4,6 +4,15 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
 import { CampingTipService } from '../../services/camping-tip.service';
+import {
+  CampingTip,
+  CampingTipRequest,
+  CampingTipMediaType,
+} from '../../models/camping-tip.model';
+
+interface CampingTipViewModel extends CampingTip {
+  status: 'Published' | 'Draft';
+}
 
 @Component({
   selector: 'app-camping-tips',
@@ -12,7 +21,7 @@ import { CampingTipService } from '../../services/camping-tip.service';
   templateUrl: './camping-tips.component.html',
 })
 export class CampingTipsComponent implements OnInit {
-  tips: any[] = [];
+  tips: CampingTipViewModel[] = [];
   showModal = false;
   isEditing = false;
   errorMessage = '';
@@ -22,6 +31,9 @@ export class CampingTipsComponent implements OnInit {
   videoPreviewUrl = '';
   deleteModalOpen = false;
   tipToDelete: number | null = null;
+
+  currentPage = 1;
+  itemsPerPage = 5;
 
   expandedTips = new Set<number>();
 
@@ -42,18 +54,18 @@ export class CampingTipsComponent implements OnInit {
     },
   };
 
-  newTip: any = this.emptyTip();
+  newTip: CampingTipViewModel = this.emptyTip();
 
   constructor(
     private campingTipService: CampingTipService,
     private cdr: ChangeDetectorRef,
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadTips();
   }
 
-  private emptyTip() {
+  private emptyTip(): CampingTipViewModel {
     return {
       id: 0,
       title: '',
@@ -65,43 +77,55 @@ export class CampingTipsComponent implements OnInit {
       imageUrl: '',
       mediaUrl: '',
       readTime: '5 min read',
+      published: true,
     };
   }
 
-  loadTips() {
-    this.campingTipService.getAll().subscribe({
-      next: (data) => {
-        this.tips = data.map((tip: any) => ({
-          ...tip,
-          status: tip.published ? 'Published' : 'Draft',
-        }));
+  private toViewModel(tip: CampingTip): CampingTipViewModel {
+    return {
+      ...tip,
+      status: tip.published ? 'Published' : 'Draft',
+    };
+  }
 
+  loadTips(): void {
+    this.campingTipService.getAll().subscribe({
+      next: (data: CampingTip[]) => {
+        this.tips = data.map((tip) => this.toViewModel(tip));
         this.sortTips();
+        this.currentPage = 1;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Failed to load camping tips', err);
         this.showError('Failed to load articles. Check your login session.');
       },
     });
   }
 
-  sortTips() {
-    this.tips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  sortTips(): void {
+    this.tips.sort(
+      (a, b) =>
+        new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime(),
+    );
   }
 
-  isExpanded(id: number) {
+  isExpanded(id: number): boolean {
     return this.expandedTips.has(id);
   }
 
-  toggleExpand(id: number) {
-    this.expandedTips.has(id) ? this.expandedTips.delete(id) : this.expandedTips.add(id);
+  toggleExpand(id: number): void {
+    this.expandedTips.has(id)
+      ? this.expandedTips.delete(id)
+      : this.expandedTips.add(id);
   }
 
   getPlainText(html: string): string {
     if (!html) return '';
+
     const div = document.createElement('div');
     div.innerHTML = html;
+
     return div.textContent || div.innerText || '';
   }
 
@@ -109,15 +133,17 @@ export class CampingTipsComponent implements OnInit {
     return this.getPlainText(content).length > 150;
   }
 
-  onMediaTypeChange() {
+  onMediaTypeChange(): void {
     this.imagePreviewUrl = '';
     this.videoPreviewUrl = '';
     this.newTip.imageUrl = '';
     this.newTip.mediaUrl = '';
   }
 
-  onImageSelected(event: any) {
-    const file = event.target.files[0];
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
     if (!file) return;
 
     this.campingTipService.uploadFile(file).subscribe({
@@ -125,15 +151,17 @@ export class CampingTipsComponent implements OnInit {
         this.imagePreviewUrl = res.url;
         this.newTip.imageUrl = res.url;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error(err);
         this.showError('Image upload failed.');
       },
     });
   }
 
-  onVideoSelected(event: any) {
-    const file = event.target.files[0];
+  onVideoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
     if (!file) return;
 
     this.campingTipService.uploadFile(file).subscribe({
@@ -141,24 +169,24 @@ export class CampingTipsComponent implements OnInit {
         this.videoPreviewUrl = res.url;
         this.newTip.mediaUrl = res.url;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error(err);
         this.showError('Video upload failed.');
       },
     });
   }
 
-  removeImage() {
+  removeImage(): void {
     this.imagePreviewUrl = '';
     this.newTip.imageUrl = '';
   }
 
-  removeVideo() {
+  removeVideo(): void {
     this.videoPreviewUrl = '';
     this.newTip.mediaUrl = '';
   }
 
-  openAddModal() {
+  openAddModal(): void {
     this.isEditing = false;
     this.imagePreviewUrl = '';
     this.videoPreviewUrl = '';
@@ -166,7 +194,7 @@ export class CampingTipsComponent implements OnInit {
     this.showModal = true;
   }
 
-  openEditModal(tip: any) {
+  openEditModal(tip: CampingTipViewModel): void {
     this.isEditing = true;
 
     this.newTip = {
@@ -181,23 +209,20 @@ export class CampingTipsComponent implements OnInit {
     this.showModal = true;
   }
 
-  saveTip() {
+  saveTip(): void {
     const plainText = this.getPlainText(this.newTip.content);
 
-    const payload = {
+    const payload: CampingTipRequest = {
       title: this.newTip.title,
       summary: this.newTip.summary || plainText.slice(0, 200) || this.newTip.title,
       content: this.newTip.content,
       author: this.newTip.author || 'Admin',
-      mediaType: this.newTip.mediaType,
-
+mediaType: this.newTip.mediaType,
       imageUrl: this.newTip.mediaType === 'IMAGE' ? this.newTip.imageUrl || null : null,
-
       mediaUrl:
         this.newTip.mediaType === 'VIDEO' || this.newTip.mediaType === 'YOUTUBE'
           ? this.newTip.mediaUrl || null
           : null,
-
       readTime: this.newTip.readTime || '5 min read',
       published: this.newTip.status === 'Published',
     };
@@ -212,25 +237,24 @@ export class CampingTipsComponent implements OnInit {
         this.closeModal();
         this.showSuccess(this.isEditing ? 'Article updated.' : 'Article created.');
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error(err);
-        const msg = err?.error?.message || err?.message || 'Something went wrong.';
-        this.showError(msg);
+        this.showError('Something went wrong.');
       },
     });
   }
 
-  openDeleteModal(id: number) {
+  openDeleteModal(id: number): void {
     this.tipToDelete = id;
     this.deleteModalOpen = true;
   }
 
-  closeDeleteModal() {
+  closeDeleteModal(): void {
     this.deleteModalOpen = false;
     this.tipToDelete = null;
   }
 
-  confirmDelete() {
+  confirmDelete(): void {
     if (this.tipToDelete === null) return;
 
     const id = this.tipToDelete;
@@ -238,8 +262,12 @@ export class CampingTipsComponent implements OnInit {
     this.campingTipService.delete(id).subscribe({
       next: () => {
         this.tips = this.tips.filter((t) => t.id !== id);
-        this.expandedTips.delete(id);
 
+        if (this.currentPage > this.totalPages) {
+          this.currentPage = this.totalPages || 1;
+        }
+
+        this.expandedTips.delete(id);
         this.closeDeleteModal();
         this.showSuccess('Article deleted.');
         this.cdr.detectChanges();
@@ -250,22 +278,36 @@ export class CampingTipsComponent implements OnInit {
     });
   }
 
-  closeModal() {
+  closeModal(): void {
     this.showModal = false;
     this.newTip = this.emptyTip();
     this.imagePreviewUrl = '';
     this.videoPreviewUrl = '';
   }
 
-  private showError(msg: string) {
+  private showError(msg: string): void {
     this.errorMessage = msg;
     this.successMessage = '';
     setTimeout(() => (this.errorMessage = ''), 4000);
   }
 
-  private showSuccess(msg: string) {
+  private showSuccess(msg: string): void {
     this.successMessage = msg;
     this.errorMessage = '';
     setTimeout(() => (this.successMessage = ''), 3000);
+  }
+
+  get paginatedTips(): CampingTipViewModel[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    return this.tips.slice(startIndex, startIndex + this.itemsPerPage);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.tips.length / this.itemsPerPage);
+  }
+
+  changePage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
   }
 }

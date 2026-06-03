@@ -12,6 +12,7 @@ import { OrdersComponent } from './pages/orders/orders.component';
 import { ReviewsComponent } from './pages/reviews/reviews.component';
 import { CampingTipsComponent } from './pages/camping-tips/camping-tips.component';
 import { UsersComponent } from './pages/users/users.component';
+import { SettingsComponent } from './pages/settings/settings.component';
 
 export const routes: Routes = [
 
@@ -36,6 +37,7 @@ export const routes: Routes = [
       { path: 'reviews', component: ReviewsComponent },
       { path: 'camping-tips', component: CampingTipsComponent },
       { path: 'users', component: UsersComponent },
+      { path: 'settings', component: SettingsComponent }
     ]
   },
 

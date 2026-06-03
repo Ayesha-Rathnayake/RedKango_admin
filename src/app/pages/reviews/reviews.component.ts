@@ -1,109 +1,143 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+
+import { AdminService } from '../../services/admin.service';
+import { Review } from '../../models/review.model';
+
+interface AdminReviewViewModel {
+  id: number;
+  customer: string;
+  service: string;
+  targetType?: string | null;
+  rating: number;
+  date: string;
+  rawDate: string;
+  comment: string;
+  reply: string;
+}
 
 @Component({
   selector: 'app-reviews',
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './reviews.component.html',
+  providers: [DatePipe],
 })
 export class ReviewsComponent implements OnInit {
-
-  reviews: any[] = [];
-  filteredReviews: any[] = [];
+  reviews: AdminReviewViewModel[] = [];
+  filteredReviews: AdminReviewViewModel[] = [];
 
   searchQuery = '';
+  currentPage = 1;
+  itemsPerPage = 5;
 
-  selectedReview: any = null;
+  selectedReview: AdminReviewViewModel | null = null;
   showViewModal = false;
   replyText = '';
 
-  ngOnInit() {
+  loading = false;
+  savingReply = false;
+
+  showDeleteModal = false;
+  reviewToDelete: AdminReviewViewModel | null = null;
+
+  successMessage = '';
+  errorMessage = '';
+  modalSuccessMessage = '';
+  modalErrorMessage = '';
+
+  constructor(
+    private adminService: AdminService,
+    private datePipe: DatePipe,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
     this.loadReviews();
   }
 
-  loadReviews() {
-    this.reviews = [
-      {
-        id: 1,
-        customer: 'Sarah Johnson',
-        service: 'Tent Rental',
-        rating: 5,
-        date: '05/10/2025',
-        comment: 'Amazing experience! The tent was in perfect condition and the staff was very helpful.',
-        reply: '',
-      },
-      {
-        id: 2,
-        customer: 'Grace Taylor',
-        service: 'Equipment',
-        rating: 4,
-        date: '01/10/2025',
-        comment: 'Great equipment quality. Delivery was a bit late but overall satisfied.',
-        reply: '',
-      },
-      {
-        id: 3,
-        customer: 'Mark Jones',
-        service: 'Camping Tips',
-        rating: 3,
-        date: '24/09/2025',
-        comment: 'Tips were helpful but could use more detail on safety procedures.',
-        reply: 'Thank you for your feedback Mark! We will update our camping tips guide soon.',
-      },
-      {
-        id: 4,
-        customer: 'Aria Nelson',
-        service: 'Tent Rental',
-        rating: 2,
-        date: '14/09/2025',
-        comment: 'The tent had a small tear on the side. Disappointed with the condition.',
-        reply: '',
-      },
-      {
-        id: 5,
-        customer: 'James Silva',
-        service: 'Equipment',
-        rating: 5,
-        date: '10/09/2025',
-        comment: 'Top notch gear! Will definitely rent again. Highly recommended.',
-        reply: '',
-      },
-    ];
+  loadReviews(): void {
+    this.loading = true;
 
-    this.sortAndFilter();
+    this.adminService.getReviews().subscribe({
+      next: (res: Review[]) => {
+        this.reviews = res.map((review) => this.mapReview(review));
+        this.sortAndFilter();
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error('Failed to load reviews', err);
+        this.errorMessage = 'Failed to load reviews.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
-  sortAndFilter() {
+  mapReview(review: Review): AdminReviewViewModel {
+    return {
+      id: review.id,
+      customer: review.name || 'Customer',
+      service: review.service || review.productName || 'Review',
+      targetType: review.targetType,
+      rating: review.rating,
+      date: this.datePipe.transform(review.createdAt, 'dd/MM/yyyy') || '',
+      rawDate: review.createdAt,
+      comment: review.review,
+      reply: review.reply || '',
+    };
+  }
+
+  sortAndFilter(): void {
     let result = [...this.reviews];
 
     if (this.searchQuery.trim()) {
-      const q = this.searchQuery.toLowerCase();
-      result = result.filter(r =>
-        r.customer.toLowerCase().includes(q) ||
-        r.service.toLowerCase().includes(q)
+      const query = this.searchQuery.toLowerCase();
+
+      result = result.filter(
+        (review) =>
+          review.customer.toLowerCase().includes(query) ||
+          review.service.toLowerCase().includes(query) ||
+          review.comment.toLowerCase().includes(query)
       );
     }
 
-    result.sort((a, b) => {
-      const parseDate = (d: string) => {
-        const [day, month, year] = d.split('/');
-        return new Date(+year, +month - 1, +day).getTime();
-      };
-      return parseDate(b.date) - parseDate(a.date);
-    });
+    result.sort(
+      (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
+    );
 
     this.filteredReviews = result;
+    this.currentPage = 1;
   }
 
-  onSearch() {
+  onSearch(): void {
     this.sortAndFilter();
+
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages || 1;
+    }
+  }
+
+  get paginatedReviews(): AdminReviewViewModel[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    return this.filteredReviews.slice(startIndex, startIndex + this.itemsPerPage);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredReviews.length / this.itemsPerPage);
+  }
+
+  changePage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
   }
 
   getStars(rating: number): number[] {
-    return Array(5).fill(0).map((_, i) => i < rating ? 1 : 0);
+    return Array(5).fill(0).map((_, index) => (index < rating ? 1 : 0));
   }
 
   getRatingLabel(rating: number): string {
@@ -114,42 +148,141 @@ export class ReviewsComponent implements OnInit {
       4: 'Very Good',
       5: 'Excellent',
     };
+
     return labels[rating] || '';
   }
 
-  openViewModal(review: any) {
+  openViewModal(review: AdminReviewViewModel): void {
     this.selectedReview = { ...review };
     this.replyText = review.reply || '';
     this.showViewModal = true;
+    this.modalSuccessMessage = '';
+    this.modalErrorMessage = '';
   }
 
-  closeViewModal() {
+  closeViewModal(): void {
     this.showViewModal = false;
     this.selectedReview = null;
     this.replyText = '';
+    this.modalSuccessMessage = '';
+    this.modalErrorMessage = '';
   }
 
-  saveReply() {
-    const index = this.reviews.findIndex(r => r.id === this.selectedReview.id);
-    if (index !== -1) {
-      this.reviews[index].reply = this.replyText;
-    }
-    this.sortAndFilter();
-    this.closeViewModal();
+  saveReply(): void {
+    if (!this.selectedReview || !this.replyText.trim()) return;
+
+    this.savingReply = true;
+    this.modalSuccessMessage = '';
+    this.modalErrorMessage = '';
+
+    this.adminService.saveReviewReply(this.selectedReview.id, this.replyText.trim()).subscribe({
+      next: (updatedReview: Review) => {
+        const mapped = this.mapReview(updatedReview);
+
+        this.reviews = this.reviews.map((review) =>
+          review.id === mapped.id ? mapped : review
+        );
+
+        this.sortAndFilter();
+        this.selectedReview = mapped;
+        this.replyText = mapped.reply;
+        this.savingReply = false;
+        this.modalSuccessMessage = 'Reply saved successfully.';
+
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.closeViewModal();
+          this.successMessage = 'Reply saved successfully.';
+          this.cdr.detectChanges();
+
+          setTimeout(() => {
+            this.successMessage = '';
+            this.cdr.detectChanges();
+          }, 3000);
+        }, 1000);
+      },
+      error: (err: unknown) => {
+        console.error('Failed to save reply', err);
+        this.savingReply = false;
+
+        this.modalErrorMessage =
+          err instanceof HttpErrorResponse
+            ? err.error?.message || 'Failed to save reply. Please try again.'
+            : 'Failed to save reply. Please try again.';
+
+        this.cdr.detectChanges();
+      },
+    });
   }
 
-  deleteReview(id: number) {
-    this.reviews = this.reviews.filter(r => r.id !== id);
-    this.sortAndFilter();
+  openDeleteModal(review: AdminReviewViewModel): void {
+    this.reviewToDelete = review;
+    this.showDeleteModal = true;
   }
 
-  deleteReply() {
-    const index = this.reviews.findIndex(r => r.id === this.selectedReview.id);
-    if (index !== -1) {
-      this.reviews[index].reply = '';
-      this.selectedReview.reply = '';
-    }
-    this.replyText = '';
-    this.sortAndFilter();
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.reviewToDelete = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.reviewToDelete) return;
+
+    const deleteId = this.reviewToDelete.id;
+
+    this.adminService.deleteReview(deleteId).subscribe({
+      next: () => {
+        this.reviews = this.reviews.filter((review) => review.id !== deleteId);
+        this.sortAndFilter();
+        this.successMessage = 'Review deleted successfully.';
+        this.closeDeleteModal();
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.successMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+      error: (err: unknown) => {
+        console.error('Failed to delete review', err);
+        this.errorMessage = 'Failed to delete review.';
+        this.closeDeleteModal();
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.errorMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+    });
+  }
+
+  deleteReply(): void {
+    if (!this.selectedReview) return;
+
+    this.modalSuccessMessage = '';
+    this.modalErrorMessage = '';
+
+    this.adminService.deleteReviewReply(this.selectedReview.id).subscribe({
+      next: (updatedReview: Review) => {
+        const mapped = this.mapReview(updatedReview);
+
+        this.reviews = this.reviews.map((review) =>
+          review.id === mapped.id ? mapped : review
+        );
+
+        this.selectedReview = mapped;
+        this.replyText = '';
+        this.sortAndFilter();
+        this.modalSuccessMessage = 'Reply removed successfully.';
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error('Failed to delete reply', err);
+        this.modalErrorMessage = 'Failed to delete reply.';
+        this.cdr.detectChanges();
+      },
+    });
   }
 }

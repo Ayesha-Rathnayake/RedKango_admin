@@ -195,6 +195,24 @@
       </button>
     </div>
 
+    <div
+      *ngIf="profileMessage"
+      [ngClass]="{
+        'bg-green-50 text-green-700 border-green-200': profileMessageType === 'success',
+        'bg-red-50 text-red-700 border-red-200': profileMessageType === 'error'
+      }"
+      class="mb-4 px-4 py-3 rounded-lg border text-sm flex items-start gap-2"
+    >
+      <i
+        [ngClass]="{
+          'fas fa-check-circle text-green-600': profileMessageType === 'success',
+          'fas fa-exclamation-circle text-red-600': profileMessageType === 'error'
+        }"
+        class="mt-0.5"
+      ></i>
+      <span>{{ profileMessage }}</span>
+    </div>
+
     <div class="flex flex-col items-center mb-6">
       <div
         class="w-24 h-24 rounded-full overflow-hidden bg-green-100 flex items-center justify-center border"
@@ -228,6 +246,8 @@
         <label class="text-xs text-gray-500 mb-1 block">Full Name</label>
         <input
           [(ngModel)]="editAdmin.name"
+          autocomplete="off"
+          name="adminFullName"
           class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
           placeholder="Full Name"
         />
@@ -238,6 +258,8 @@
         <input
           [(ngModel)]="editAdmin.email"
           readonly
+          autocomplete="off"
+          name="adminReadonlyEmail"
           class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
           placeholder="Email"
         />
@@ -248,6 +270,8 @@
         <label class="text-xs text-gray-500 mb-1 block">Phone</label>
         <input
           [(ngModel)]="editAdmin.phone"
+          autocomplete="off"
+          name="adminPhone"
           class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
           placeholder="Phone"
         />
@@ -258,6 +282,8 @@
         <input
           [(ngModel)]="editAdmin.role"
           readonly
+          autocomplete="off"
+          name="adminRole"
           class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
         />
       </div>
@@ -305,21 +331,24 @@
       *ngIf="passwordMessage"
       [ngClass]="{
         'bg-green-50 text-green-700 border-green-200': passwordMessageType === 'success',
-        'bg-red-50 text-red-700 border-red-200': passwordMessageType === 'error',
+        'bg-red-50 text-red-700 border-red-200': passwordMessageType === 'error'
       }"
       class="mb-4 px-4 py-3 rounded-lg border text-sm flex items-start gap-2"
     >
       <i
         [ngClass]="{
           'fas fa-check-circle text-green-600': passwordMessageType === 'success',
-          'fas fa-exclamation-circle text-red-600': passwordMessageType === 'error',
+          'fas fa-exclamation-circle text-red-600': passwordMessageType === 'error'
         }"
         class="mt-0.5"
       ></i>
       <span>{{ passwordMessage }}</span>
     </div>
 
-    <div class="space-y-4">
+    <form autocomplete="off" class="space-y-4">
+      <input type="text" name="fake-email" autocomplete="username" class="hidden" />
+      <input type="password" name="fake-password" autocomplete="new-password" class="hidden" />
+
       <div>
         <label class="text-xs text-gray-500 mb-1 block">Current Password</label>
 
@@ -327,6 +356,9 @@
           <input
             [type]="showCurrentPassword ? 'text' : 'password'"
             [(ngModel)]="passwordForm.currentPassword"
+            [ngModelOptions]="{ standalone: true }"
+            autocomplete="new-password"
+            name="adminCurrentPasswordNoAutofill"
             class="w-full px-3 py-2 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Enter current password"
           />
@@ -348,6 +380,9 @@
           <input
             [type]="showNewPassword ? 'text' : 'password'"
             [(ngModel)]="passwordForm.newPassword"
+            [ngModelOptions]="{ standalone: true }"
+            autocomplete="new-password"
+            name="adminNewPasswordNoAutofill"
             class="w-full px-3 py-2 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Enter new password"
           />
@@ -369,6 +404,9 @@
           <input
             [type]="showConfirmPassword ? 'text' : 'password'"
             [(ngModel)]="passwordForm.confirmPassword"
+            [ngModelOptions]="{ standalone: true }"
+            autocomplete="new-password"
+            name="adminConfirmPasswordNoAutofill"
             class="w-full px-3 py-2 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Confirm new password"
           />
@@ -382,10 +420,11 @@
           </button>
         </div>
       </div>
-    </div>
+    </form>
 
     <div class="flex flex-col sm:flex-row gap-3 mt-6">
       <button
+        type="button"
         (click)="updatePassword()"
         [disabled]="changingPassword"
         class="bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg w-full text-sm font-medium transition"
@@ -394,6 +433,7 @@
       </button>
 
       <button
+        type="button"
         (click)="closePasswordModal()"
         class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg w-full text-sm font-medium transition"
       >

@@ -25,7 +25,7 @@
   <!-- Tips List -->
   <div class="space-y-4">
     <div
-      *ngFor="let tip of tips"
+      *ngFor="let tip of paginatedTips"
       class="border border-gray-100 rounded-xl p-4 sm:p-5 hover:bg-gray-50 transition"
     >
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -112,14 +112,14 @@
             class="px-2.5 py-1 rounded-full text-xs font-semibold"
             [ngClass]="{
               'bg-green-100 text-green-700': tip.status === 'Published',
-              'bg-gray-100 text-gray-500': tip.status === 'Draft'
+              'bg-gray-100 text-gray-500': tip.status === 'Draft',
             }"
           >
             {{ tip.status }}
           </span>
 
           <button
-            (click)="openEditModal(tip)"
+           (click)="$event.stopPropagation(); openEditModal(tip)"
             class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition"
             title="Edit"
           >
@@ -127,7 +127,7 @@
           </button>
 
           <button
-            (click)="openDeleteModal(tip.id)"
+       (click)="$event.stopPropagation(); openDeleteModal(tip.id)"
             class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition"
             title="Delete"
           >
@@ -143,6 +143,40 @@
       No articles yet. Add your first camping tip!
     </div>
   </div>
+</div>
+
+<!-- Pagination -->
+<div *ngIf="tips.length > itemsPerPage" class="flex items-center justify-center gap-2 mt-6">
+  <button
+    type="button"
+    (click)="changePage(currentPage - 1)"
+    [disabled]="currentPage === 1"
+    class="px-3 py-2 rounded-lg border text-sm disabled:opacity-50 hover:bg-gray-50"
+  >
+    Prev
+  </button>
+
+  <button
+    type="button"
+    *ngFor="let page of [].constructor(totalPages); let i = index"
+    (click)="changePage(i + 1)"
+    [ngClass]="{
+      'bg-green-600 text-white border-green-600': currentPage === i + 1,
+      'bg-white text-gray-700 border-gray-300': currentPage !== i + 1,
+    }"
+    class="w-9 h-9 rounded-lg border text-sm font-medium transition"
+  >
+    {{ i + 1 }}
+  </button>
+
+  <button
+    type="button"
+    (click)="changePage(currentPage + 1)"
+    [disabled]="currentPage === totalPages"
+    class="px-3 py-2 rounded-lg border text-sm disabled:opacity-50 hover:bg-gray-50"
+  >
+    Next
+  </button>
 </div>
 
 <!-- Add / Edit Modal -->
@@ -273,10 +307,7 @@
         />
 
         <div *ngIf="imagePreviewUrl" class="relative mt-2">
-          <img
-            [src]="imagePreviewUrl"
-            class="w-full h-36 sm:h-40 object-cover rounded-xl"
-          />
+          <img [src]="imagePreviewUrl" class="w-full h-36 sm:h-40 object-cover rounded-xl" />
 
           <button
             (click)="removeImage()"
@@ -341,34 +372,21 @@
         />
 
         <p class="text-xs text-gray-400 mt-1">
-          Paste a YouTube watch link or short link. Example:
-          https://youtu.be/VIDEO_ID
+          Paste a YouTube watch link or short link. Example: https://youtu.be/VIDEO_ID
         </p>
       </div>
+<!-- Status -->
+<div>
+  <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
 
-      <!-- Date + Status -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Date</label>
-          <input
-            type="date"
-            [(ngModel)]="newTip.date"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-          <select
-            [(ngModel)]="newTip.status"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-          >
-            <option value="Published">Published</option>
-            <option value="Draft">Draft</option>
-          </select>
-        </div>
-      </div>
-    </div>
+  <select
+    [(ngModel)]="newTip.status"
+    class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+  >
+    <option value="Published">Published</option>
+    <option value="Draft">Draft</option>
+  </select>
+</div>
 
     <!-- Modal Actions -->
     <div class="flex flex-col sm:flex-row gap-3 mt-6">
@@ -388,6 +406,7 @@
     </div>
   </div>
 </div>
+</div>
 
 <!-- DELETE CONFIRM MODAL -->
 <div
@@ -395,15 +414,11 @@
   class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] px-4"
 >
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-    <div
-      class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"
-    >
+    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
       <i class="fas fa-trash text-red-500 text-xl"></i>
     </div>
 
-    <h2 class="text-xl font-bold text-gray-800 text-center">
-      Delete Article
-    </h2>
+    <h2 class="text-xl font-bold text-gray-800 text-center">Delete Article</h2>
 
     <p class="text-sm text-gray-500 text-center mt-2 leading-relaxed">
       Are you sure you want to delete this article?

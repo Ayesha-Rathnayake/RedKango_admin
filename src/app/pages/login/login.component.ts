@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service'; // adjust path if needed
+import { FormsModule, NgForm } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -11,10 +11,10 @@ import { AuthService } from '../../services/auth.service'; // adjust path if nee
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
-  email        = '';
-  password     = '';
+  email = '';
+  password = '';
   errorMessage = '';
-  loading      = false;
+  loading = false;
   showPassword = false;
 
   constructor(
@@ -22,24 +22,18 @@ export class LoginComponent {
     private router: Router
   ) {}
 
-  onKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter') this.onLogin();
-  }
-
-  onLogin() {
+  onLogin(form: NgForm) {
     this.errorMessage = '';
 
-    if (!this.email || !this.password) {
-      this.errorMessage = 'Please enter your email and password.';
+    if (form.invalid) {
+      form.control.markAllAsTouched();
       return;
     }
 
     this.loading = true;
 
-    this.authService.login(this.email, this.password).subscribe({
-
+    this.authService.login(this.email.trim(), this.password).subscribe({
       next: () => {
-        // AuthService.login() already verified ROLE_ADMIN and saved to localStorage
         this.loading = false;
         this.router.navigate(['/dashboard']);
       },
@@ -47,7 +41,6 @@ export class LoginComponent {
       error: (err) => {
         this.loading = false;
 
-        // Role check failed inside tap()
         if (err.message === 'Access denied') {
           this.errorMessage = 'You do not have admin access.';
           return;
