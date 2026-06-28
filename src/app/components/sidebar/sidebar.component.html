@@ -1,0 +1,128 @@
+
+<!-- Sidebar -->
+<div
+  class="sticky top-0 flex flex-col w-16 md:w-64 h-screen bg-gray-900 text-white flex-shrink-0 transition-all duration-300 overflow-y-auto"
+>
+  <!-- Logo -->
+  <div
+    class="px-3 md:px-6 py-5 border-b border-gray-700 flex items-center justify-center md:justify-start gap-3"
+  >
+    <!-- Logo Image -->
+    <img
+      src="red-kango-logo-navbar.png"
+      alt="Red Kango Logo"
+      class="h-10 w-auto object-contain flex-shrink-0"
+      onerror="
+        this.style.display = 'none';
+        this.nextElementSibling.style.display = 'flex';
+      "
+    />
+
+    <!-- Fallback icon -->
+    <div class="w-9 h-9 bg-green-500 rounded-lg items-center justify-center hidden flex-shrink-0">
+      <i class="fas fa-campground text-white text-lg"></i>
+    </div>
+
+    <!-- Brand text: hidden on mobile -->
+    <div class="hidden md:block">
+      <h1 class="text-white font-bold text-base tracking-wide">RED KANGO</h1>
+      <p class="text-gray-400 text-xs">Admin Portal</p>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 px-2 md:px-3 py-6 space-y-1">
+    <a
+      routerLink="/dashboard"
+      routerLinkActive="bg-green-600 text-white"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Dashboard"
+    >
+      <i class="fas fa-chart-line text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Dashboard</span>
+    </a>
+
+    <a
+      routerLink="/bookings"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Bookings"
+    >
+      <i class="fas fa-calendar-check text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Bookings</span>
+    </a>
+
+    <a
+      routerLink="/products"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Products"
+    >
+      <i class="fas fa-box text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Products</span>
+    </a>
+
+    <a
+      routerLink="/orders"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Orders"
+    >
+      <i class="fas fa-shopping-cart text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Orders</span>
+    </a>
+
+    <a
+      routerLink="/reviews"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Reviews"
+    >
+      <i class="fas fa-star text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Reviews</span>
+    </a>
+
+    <a
+      routerLink="/camping-tips"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Camping Tips"
+    >
+      <i class="fas fa-campground text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Camping Tips</span>
+    </a>
+
+    <a
+      routerLink="/users"
+      routerLinkActive="bg-green-600 text-white"
+      class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      title="Users"
+    >
+      <i class="fas fa-users text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Users</span>
+    </a>
+
+    <a
+  routerLink="/settings"
+  routerLinkActive="bg-green-600 text-white"
+  class="flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+  title="Settings"
+>
+  <i class="fas fa-cog text-sm flex-shrink-0"></i>
+  <span class="hidden md:inline text-sm font-medium">Settings</span>
+</a>
+  </nav>
+
+  <!-- Logout -->
+  <div class="px-2 md:px-3 py-4 border-t border-gray-700">
+    <button
+      (click)="logout()"
+      class="flex items-center justify-center md:justify-start gap-3 w-full px-3 md:px-4 py-3 rounded-lg text-gray-400 hover:bg-red-600 hover:text-white transition"
+      title="Logout"
+    >
+      <i class="fas fa-sign-out-alt text-sm flex-shrink-0"></i>
+      <span class="hidden md:inline text-sm font-medium">Logout</span>
+    </button>
+  </div>
+</div>

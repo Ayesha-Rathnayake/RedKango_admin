@@ -1,0 +1,169 @@
+<div class="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-8">
+  <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex">
+
+    <!-- Left section -->
+    <div class="hidden md:flex w-1/2 bg-[#F7F6F1] items-center justify-center p-10">
+      <div class="text-center">
+        <img
+          src="red-kango-logo-navbar.png"
+          alt="Red Kango Logo"
+          class="h-24 mx-auto mb-6 object-contain"
+        />
+
+        <h1 class="text-2xl font-bold text-[#0F5D2F]">
+          Admin Portal
+        </h1>
+
+      
+      </div>
+    </div>
+
+    <!-- Form section -->
+    <div class="w-full md:w-1/2 bg-white p-8 sm:p-10">
+      <div class="md:hidden text-center mb-7">
+        <img
+          src="red-kango-logo-navbar.png"
+          alt="Red Kango Logo"
+          class="h-20 mx-auto object-contain"
+        />
+      </div>
+
+      <h2 class="text-2xl font-bold text-[#0F5D2F] mb-1">
+        Sign In
+      </h2>
+
+      <p class="text-sm text-gray-500 mb-6">
+        Enter your admin credentials to continue
+      </p>
+
+      <form #loginForm="ngForm" (ngSubmit)="onLogin(loginForm)" novalidate>
+
+        <!-- Error message -->
+        <div
+          *ngIf="errorMessage"
+          class="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-5 text-sm"
+          role="alert"
+        >
+          <i class="fas fa-circle-exclamation mt-0.5 text-xs"></i>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
+
+          <input
+            type="email"
+            name="email"
+            [(ngModel)]="email"
+            required
+            email
+            #emailCtrl="ngModel"
+            placeholder="Enter your email address"
+            [disabled]="loading"
+            class="w-full px-4 py-3 border rounded-lg text-sm outline-none transition
+                   disabled:bg-gray-100 disabled:cursor-not-allowed"
+            [ngClass]="
+              emailCtrl.invalid && emailCtrl.touched
+                ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                : 'border-gray-300 focus:border-[#0F5D2F] focus:ring-2 focus:ring-green-100'
+            "
+          />
+
+          <p
+            *ngIf="emailCtrl.touched && emailCtrl.hasError('required')"
+            class="text-red-600 text-xs mt-1"
+          >
+            Email address is required.
+          </p>
+
+          <p
+            *ngIf="emailCtrl.touched && emailCtrl.hasError('email') && !emailCtrl.hasError('required')"
+            class="text-red-600 text-xs mt-1"
+          >
+            Please enter a valid email address.
+          </p>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-5">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+
+          <div class="relative">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              name="password"
+              [(ngModel)]="password"
+              required
+              #passwordCtrl="ngModel"
+              placeholder="Enter your password"
+              [disabled]="loading"
+              class="w-full px-4 py-3 pr-11 border rounded-lg text-sm outline-none transition
+                     disabled:bg-gray-100 disabled:cursor-not-allowed"
+              [ngClass]="
+                passwordCtrl.invalid && passwordCtrl.touched
+                  ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                  : 'border-gray-300 focus:border-[#0F5D2F] focus:ring-2 focus:ring-green-100'
+              "
+            />
+
+            <button
+              type="button"
+              (click)="showPassword = !showPassword"
+              [disabled]="loading"
+              class="absolute inset-y-0 right-0 w-11 flex items-center justify-center
+                     text-gray-400 hover:text-[#0F5D2F] transition disabled:cursor-not-allowed"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            >
+              <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+
+          <p
+            *ngIf="passwordCtrl.touched && passwordCtrl.hasError('required')"
+            class="text-red-600 text-xs mt-1"
+          >
+            Password is required.
+          </p>
+        </div>
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          [disabled]="loading"
+          class="w-full bg-[#0F5D2F] hover:bg-[#0d4f28] text-white font-semibold
+                 py-3 rounded-lg transition-all duration-200 disabled:opacity-60
+                 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <svg
+            *ngIf="loading"
+            class="animate-spin h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+
+          {{ loading ? 'Signing in...' : 'Sign In' }}
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>

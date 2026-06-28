@@ -1,0 +1,715 @@
+<!-- Page Header -->
+<div class="mb-6 md:mb-8">
+  <h1 class="text-xl md:text-2xl font-bold text-gray-800">Bookings</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    Manage rental bookings, dispatching, returns, and completion.
+  </p>
+</div>
+
+<!-- Messages -->
+<div
+  *ngIf="successMessage"
+  class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm"
+>
+  <i class="fas fa-check-circle mr-2"></i>
+  {{ successMessage }}
+</div>
+
+<div
+  *ngIf="errorMessage"
+  class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
+>
+  <i class="fas fa-exclamation-circle mr-2"></i>
+  {{ errorMessage }}
+</div>
+
+<!-- Bookings Table Card -->
+<div class="bg-white rounded-2xl shadow-sm border p-4 md:p-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+    <div>
+      <h3 class="text-base font-semibold text-gray-800">All Rental Bookings</h3>
+      <p class="text-xs text-gray-400">
+        Showing {{ paginatedBookings.length }} of {{ filteredBookings.length }} bookings
+        <span *ngIf="filteredBookings.length !== bookings.length">(filtered from {{ bookings.length }} total)</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="grid grid-cols-1 md:grid-cols-[1fr_220px_auto] gap-3 mb-6">
+    <div class="relative">
+      <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+        placeholder="Search by booking number, customer name, or email..."
+        class="w-full h-11 pl-11 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+      />
+    </div>
+
+    <select
+      [(ngModel)]="statusFilter"
+      (change)="applyFilters()"
+      class="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+    >
+      <option value="ALL">All Statuses</option>
+      <option value="CONFIRMED">Confirmed</option>
+      <option value="READY_FOR_DISPATCH">Ready for Dispatch</option>
+      <option value="DISPATCHED">Dispatched</option>
+      <option value="RENTED">Rented</option>
+      <option value="RETURNED">Returned</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+
+    <button
+      type="button"
+      (click)="clearFilters()"
+      class="h-11 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-semibold"
+    >
+      Clear
+    </button>
+  </div>
+
+  <!-- Desktop Table -->
+  <div class="hidden lg:block overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left border-b">
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Booking No</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Customer</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Rental Period</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Fulfilment</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Amount</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Booking Status</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium text-center">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        <tr *ngIf="loading">
+          <td colspan="7" class="py-10 text-center text-gray-400">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            Loading bookings...
+          </td>
+        </tr>
+
+        <tr
+          *ngFor="let b of paginatedBookings"
+          [id]="'booking-' + b.bookingNumber"
+          class="hover:bg-gray-50 transition"
+          [class.bg-yellow-50]="b.bookingNumber === highlightedId"
+        >
+          <!-- Booking Number -->
+          <td class="py-4 pr-4">
+            <p class="font-semibold text-gray-700 text-sm">{{ b.bookingNumber }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ b.totalDays }} day(s)</p>
+          </td>
+
+          <!-- Customer -->
+          <td class="py-4 pr-4">
+            <div class="flex items-center gap-2">
+              <div
+                class="w-8 h-8 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              >
+                {{ b.customerName.charAt(0) }}
+              </div>
+              <div>
+                <p class="font-medium text-gray-700 text-sm">{{ b.customerName }}</p>
+                <p class="text-xs text-gray-400">{{ b.customerEmail }}</p>
+              </div>
+            </div>
+          </td>
+
+          <!-- Rental Period -->
+          <td class="py-4 pr-4">
+            <p class="text-sm text-gray-700">{{ b.rentalStartDate }}</p>
+            <p class="text-xs text-gray-400">to {{ b.rentalEndDate }}</p>
+          </td>
+
+          <!-- Fulfilment Method -->
+          <td class="py-4 pr-4">
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+              [ngClass]="{
+                'bg-blue-50 text-blue-700': b.deliveryMethod === 'DELIVERY',
+                'bg-green-50 text-green-700': b.deliveryMethod === 'PICKUP'
+              }"
+            >
+              <i
+                class="fas text-xs"
+                [ngClass]="{
+                  'fa-truck': b.deliveryMethod === 'DELIVERY',
+                  'fa-store': b.deliveryMethod === 'PICKUP'
+                }"
+              ></i>
+              {{ b.deliveryMethod === 'PICKUP' ? 'Store Pickup' : 'Delivery' }}
+            </span>
+          </td>
+
+          <!-- Amount -->
+          <td class="py-4 pr-4">
+            <p class="font-semibold text-gray-700 text-sm">LKR {{ b.totalAmount | number }}</p>
+            <p class="text-xs text-orange-500">COD: LKR {{ b.remainingAmount | number }}</p>
+          </td>
+
+          <!-- Booking Status -->
+          <td class="py-4 pr-4">
+            <span
+              class="px-3 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="getBookingStatusClass(b.bookingStatus)"
+            >
+              {{ b.bookingStatus }}
+            </span>
+          </td>
+
+          <!-- Action -->
+          <td class="py-4 text-center">
+            <button
+              type="button"
+              (click)="openDetailsModal(b)"
+              class="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-green-50 transition"
+              title="View booking details"
+            >
+              <i class="fas fa-eye text-gray-400 hover:text-green-600"></i>
+            </button>
+          </td>
+        </tr>
+
+        <tr *ngIf="!loading && bookings.length === 0">
+          <td colspan="7" class="py-12 text-center text-gray-400">
+            <i class="fas fa-calendar-times text-3xl mb-3 block text-gray-200"></i>
+            No rental bookings found.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Cards -->
+  <div class="lg:hidden space-y-3">
+    <div *ngIf="loading" class="py-10 text-center text-gray-400">
+      <i class="fas fa-spinner fa-spin mr-2"></i>
+      Loading bookings...
+    </div>
+
+    <div
+      *ngFor="let b of paginatedBookings"
+      class="border border-gray-100 rounded-xl p-4"
+      [class.bg-yellow-50]="b.bookingNumber === highlightedId"
+    >
+      <div class="flex justify-between gap-3 mb-3">
+        <div>
+          <p class="text-sm font-bold text-gray-700">{{ b.bookingNumber }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            {{ b.rentalStartDate }} → {{ b.rentalEndDate }}
+          </p>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span
+            class="px-2.5 py-1 rounded-full text-xs font-semibold"
+            [ngClass]="getBookingStatusClass(b.bookingStatus)"
+          >
+            {{ b.bookingStatus }}
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+            [ngClass]="{
+              'bg-blue-50 text-blue-600': b.deliveryMethod === 'DELIVERY',
+              'bg-green-50 text-green-600': b.deliveryMethod === 'PICKUP'
+            }"
+          >
+            <i
+              class="fas text-xs"
+              [ngClass]="{
+                'fa-truck': b.deliveryMethod === 'DELIVERY',
+                'fa-store': b.deliveryMethod === 'PICKUP'
+              }"
+            ></i>
+            {{ b.deliveryMethod === 'PICKUP' ? 'Pickup' : 'Delivery' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 mb-3">
+        <div
+          class="w-8 h-8 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold"
+        >
+          {{ b.customerName.charAt(0) }}
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-700">{{ b.customerName }}</p>
+          <p class="text-xs text-gray-400">{{ b.customerEmail }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t">
+        <div>
+          <p class="text-sm font-bold text-gray-700">LKR {{ b.totalAmount | number }}</p>
+          <p class="text-xs text-orange-500">COD: LKR {{ b.remainingAmount | number }}</p>
+        </div>
+        <button
+          type="button"
+          (click)="openDetailsModal(b)"
+          class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition"
+        >
+          View Details
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && bookings.length === 0" class="py-12 text-center text-gray-400">
+      <i class="fas fa-calendar-times text-3xl mb-3 block text-gray-200"></i>
+      No bookings found.
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div
+    *ngIf="totalPages > 1"
+    class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t"
+  >
+    <p class="text-xs text-gray-400">
+      Page {{ currentPage }} of {{ totalPages }}
+    </p>
+
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        (click)="goToPage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Prev
+      </button>
+
+      <ng-container *ngFor="let page of pageNumbers">
+        <button
+          *ngIf="page !== '...'"
+          type="button"
+          (click)="goToPage(+page)"
+          class="w-8 h-8 text-xs rounded-lg border transition font-medium"
+          [ngClass]="{
+            'bg-green-600 text-white border-green-600': currentPage === page,
+            'border-gray-200 text-gray-700 hover:bg-gray-50': currentPage !== page
+          }"
+        >
+          {{ page }}
+        </button>
+
+        <span
+          *ngIf="page === '...'"
+          class="w-8 h-8 text-xs flex items-center justify-center text-gray-400"
+        >
+          ...
+        </span>
+      </ng-container>
+
+      <button
+        type="button"
+        (click)="goToPage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== DETAILS MODAL ========== -->
+<div
+  *ngIf="showDetailsModal && selectedBooking"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+>
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+
+    <!-- Modal Header -->
+    <div class="p-5 md:p-6 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+      <div class="flex items-center gap-3">
+        <div>
+          <h2 class="text-lg md:text-xl font-bold text-gray-800">Booking Details</h2>
+          <div class="flex items-center gap-2 mt-0.5">
+            <p class="text-sm text-gray-400">{{ selectedBooking.bookingNumber }}</p>
+            <span
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+              [ngClass]="{
+                'bg-blue-50 text-blue-700': selectedBooking.deliveryMethod === 'DELIVERY',
+                'bg-green-50 text-green-700': selectedBooking.deliveryMethod === 'PICKUP'
+              }"
+            >
+              <i
+                class="fas text-xs"
+                [ngClass]="{
+                  'fa-truck': selectedBooking.deliveryMethod === 'DELIVERY',
+                  'fa-store': selectedBooking.deliveryMethod === 'PICKUP'
+                }"
+              ></i>
+              {{ selectedBooking.deliveryMethod === 'PICKUP' ? 'Store Pickup' : 'Delivery' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="closeDetailsModal()"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="p-5 md:p-6 space-y-6">
+
+      <!-- Status Row -->
+      <div class="flex flex-wrap gap-3">
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
+          <span class="text-xs text-gray-400">Booking</span>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="getBookingStatusClass(selectedBooking.bookingStatus)"
+          >
+            {{ selectedBooking.bookingStatus }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
+          <span class="text-xs text-gray-400">Payment</span>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="getPaymentStatusClass(selectedBooking.paymentStatus)"
+          >
+            {{ selectedBooking.paymentStatus }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
+          <span class="text-xs text-gray-400">Duration</span>
+          <span class="text-xs font-semibold text-gray-700">{{ selectedBooking.totalDays }} day(s)</span>
+        </div>
+      </div>
+
+      <!-- Customer + Delivery -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-gray-50 rounded-xl p-4">
+          <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Customer</p>
+          <p class="font-semibold text-gray-800">{{ selectedBooking.customerName }}</p>
+          <p class="text-sm text-gray-500 mt-0.5">{{ selectedBooking.customerEmail }}</p>
+          <p class="text-sm text-gray-500">{{ selectedBooking.deliveryPhone }}</p>
+        </div>
+
+        <!-- Delivery Address -->
+               <div class="bg-gray-50 rounded-xl p-4" *ngIf="selectedBooking.deliveryMethod === 'DELIVERY'">
+          <p class="text-xs text-gray-400 mb-1">Delivery Address</p>
+          <p class="font-medium text-gray-700">
+            {{ selectedBooking.deliveryFullName || '' }}
+            {{ selectedBooking.deliveryPhone ? '· ' + selectedBooking.deliveryPhone : '' }}
+          </p>
+          <p class="text-sm text-gray-600 mt-1">
+            {{ selectedBooking.deliveryAddressLine1 || '' }}
+            {{ selectedBooking.deliveryAddressLine2 ? ', ' + selectedBooking.deliveryAddressLine2 : '' }}
+          </p>
+          <p class="text-sm text-gray-600">
+            {{ selectedBooking.deliveryCity || '' }}
+            {{ selectedBooking.deliveryDistrict ? ', ' + selectedBooking.deliveryDistrict : '' }}
+            {{ selectedBooking.deliveryPostalCode ? ' ' + selectedBooking.deliveryPostalCode : '' }}
+          </p>
+          <p class="text-xs text-orange-600 mt-2">
+            <i class="fas fa-circle-info mr-1"></i>
+            Delivery Charge: LKR {{ selectedBooking.deliveryCharge | number }} (COD)
+          </p>
+        </div>
+
+
+        <!-- Store Pickup -->
+        <div
+          class="bg-green-50 rounded-xl p-4 border border-green-100"
+          *ngIf="selectedBooking.deliveryMethod === 'PICKUP'"
+        >
+          <p class="text-xs text-green-600 mb-2 font-medium uppercase tracking-wide">Collection</p>
+          <p class="font-semibold text-green-800">
+            <i class="fas fa-store mr-1"></i> Store Pickup
+          </p>
+          <p class="text-xs text-gray-500 mt-2">
+            Customer will collect gear from your store.
+          </p>
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-gray-50 rounded-xl p-4">
+          <p class="text-xs text-gray-400 mb-1">Start Date</p>
+          <p class="font-semibold text-gray-700 text-sm">{{ selectedBooking.rentalStartDate }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4">
+          <p class="text-xs text-gray-400 mb-1">End Date</p>
+          <p class="font-semibold text-gray-700 text-sm">{{ selectedBooking.rentalEndDate }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4 md:col-span-2">
+          <p class="text-xs text-gray-400 mb-1">Duration</p>
+          <p class="font-semibold text-gray-700 text-sm">{{ selectedBooking.totalDays }} day(s)</p>
+        </div>
+      </div>
+
+      <!-- Payment Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-green-50 rounded-xl p-4 border border-green-100">
+          <p class="text-xs text-green-600 mb-1">Total Amount</p>
+          <p class="text-lg font-bold text-green-700">LKR {{ selectedBooking.totalAmount | number }}</p>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+          <p class="text-xs text-blue-600 mb-1">Advance Paid</p>
+          <p class="text-lg font-bold text-blue-700">LKR {{ selectedBooking.advanceAmount | number }}</p>
+          <p *ngIf="selectedBooking.bookingStatus === 'CANCELLED' && selectedBooking.advancePaidAt"
+             class="text-xs text-red-500 mt-1">
+            <i class="fas fa-lock text-xs mr-1"></i>Non-refundable — kept as revenue
+          </p>
+        </div>
+
+        <!-- Remaining balance card — context-aware -->
+        <div
+          class="rounded-xl p-4 border"
+          [ngClass]="{
+            'bg-teal-50 border-teal-100': selectedBooking.paymentStatus === 'FULLY_PAID',
+            'bg-red-50 border-red-100': selectedBooking.bookingStatus === 'CANCELLED',
+            'bg-gray-50 border-gray-100': selectedBooking.paymentStatus === 'PENDING',
+            'bg-orange-50 border-orange-100': selectedBooking.paymentStatus === 'ADVANCE_PAID' && selectedBooking.bookingStatus !== 'CANCELLED'
+          }"
+        >
+          <!-- CANCELLED — no remaining to collect -->
+          <ng-container *ngIf="selectedBooking.bookingStatus === 'CANCELLED'">
+            <p class="text-xs text-red-600 mb-1">Booking Cancelled</p>
+            <p class="text-lg font-bold text-red-700">
+              {{ selectedBooking.advancePaidAt ? 'Advance Kept' : 'No Charge' }}
+            </p>
+            <p class="text-xs text-red-400 mt-1">
+              {{ selectedBooking.advancePaidAt
+                ? 'Remaining balance waived — no COD required'
+                : 'Cancelled before any payment was made' }}
+            </p>
+          </ng-container>
+
+          <!-- FULLY PAID -->
+          <ng-container *ngIf="selectedBooking.paymentStatus === 'FULLY_PAID'">
+            <p class="text-xs text-teal-600 mb-1">Balance Collected</p>
+            <p class="text-lg font-bold text-teal-700">LKR {{ selectedBooking.remainingAmount | number }}</p>
+            <p class="text-xs text-teal-500 mt-1">&#10003; Collected in cash</p>
+          </ng-container>
+
+          <!-- ADVANCE PAID — active booking, COD pending -->
+          <ng-container *ngIf="selectedBooking.paymentStatus === 'ADVANCE_PAID' && selectedBooking.bookingStatus !== 'CANCELLED'">
+            <p class="text-xs text-orange-600 mb-1">Remaining Balance (COD)</p>
+            <p class="text-lg font-bold text-orange-700">LKR {{ selectedBooking.remainingAmount | number }}</p>
+            <p class="text-xs text-orange-500 mt-1">
+              Collect in cash on {{ selectedBooking.deliveryMethod === 'PICKUP' ? 'store pickup' : 'delivery' }}
+            </p>
+          </ng-container>
+
+          <!-- PENDING — not yet paid -->
+          <ng-container *ngIf="selectedBooking.paymentStatus === 'PENDING'">
+            <p class="text-xs text-gray-400 mb-1">Advance Payment</p>
+            <p class="text-sm font-semibold text-gray-500">
+              <i class="fas fa-clock mr-1"></i> Awaiting advance payment
+            </p>
+            <p class="text-xs text-gray-400 mt-1">
+              Booking will be confirmed once advance is paid online.
+            </p>
+          </ng-container>
+        </div>
+
+      </div>
+
+
+      <!-- Rental Items -->
+      <div>
+        <h3 class="font-semibold text-gray-800 mb-3">Rental Items</h3>
+        <div class="border border-gray-100 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs text-gray-400">Product</th>
+                <th class="px-4 py-3 text-center text-xs text-gray-400">Qty</th>
+                <th class="px-4 py-3 text-right text-xs text-gray-400">Daily Rate</th>
+                <th class="px-4 py-3 text-right text-xs text-gray-400">Line Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <tr *ngFor="let item of selectedBooking.items">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <img
+                      [src]="item.imageUrl || 'images/products/placeholder.png'"
+                      class="w-10 h-10 object-cover rounded-lg bg-gray-100"
+                    />
+                    <div>
+                      <p class="font-medium text-gray-700">{{ item.productName }}</p>
+                      <p class="text-xs text-gray-400">{{ item.productId }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-center text-gray-600">{{ item.quantity }}</td>
+                <td class="px-4 py-3 text-right text-gray-600">LKR {{ item.dailyRate | number }}</td>
+                <td class="px-4 py-3 text-right font-medium text-gray-700">LKR {{ item.lineTotal | number }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tracking Info -->
+      <div
+        *ngIf="selectedBooking.trackingNumber"
+        class="bg-blue-50 border border-blue-100 rounded-xl p-4"
+      >
+        <p class="font-semibold text-blue-800 mb-2">
+          <i class="fas fa-shipping-fast mr-2"></i>Tracking Information
+        </p>
+        <p class="text-sm text-blue-700">Courier: {{ selectedBooking.courierName }}</p>
+        <p class="text-sm text-blue-700">Tracking No: {{ selectedBooking.trackingNumber }}</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="border-t pt-5 flex flex-col sm:flex-row gap-3 justify-end">
+        <button
+          *ngIf="(selectedBooking.bookingStatus === 'CONFIRMED' || selectedBooking.bookingStatus === 'READY_FOR_DISPATCH') && selectedBooking.deliveryMethod === 'DELIVERY'"
+          type="button"
+          (click)="openDispatchModal(selectedBooking)"
+          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg"
+        >
+          <i class="fas fa-truck mr-1.5"></i> Dispatch Booking
+        </button>
+
+        <button
+          *ngIf="(selectedBooking.bookingStatus === 'CONFIRMED' || selectedBooking.bookingStatus === 'READY_FOR_DISPATCH') && selectedBooking.deliveryMethod === 'PICKUP'"
+          type="button"
+          (click)="markAsRented(selectedBooking)"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg"
+        >
+          <i class="fas fa-store mr-1.5"></i> Mark as Collected
+        </button>
+
+        <button
+          *ngIf="selectedBooking.bookingStatus === 'DISPATCHED'"
+          type="button"
+          (click)="markAsRented(selectedBooking)"
+          class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold rounded-lg"
+        >
+          Mark as Rented
+        </button>
+
+        <!-- Collect balance first when RENTED -->
+        <button
+          *ngIf="selectedBooking.bookingStatus === 'RENTED' && selectedBooking.paymentStatus === 'ADVANCE_PAID'"
+          type="button"
+          (click)="markBalanceCollected(selectedBooking)"
+          class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg"
+        >
+          Mark Balance Collected
+        </button>
+
+        <!-- Then mark as returned once balance is collected -->
+        <button
+          *ngIf="selectedBooking.bookingStatus === 'RENTED' && selectedBooking.paymentStatus === 'FULLY_PAID'"
+          type="button"
+          (click)="markAsReturned(selectedBooking)"
+          class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg"
+        >
+          Mark as Returned
+        </button>
+
+
+              <button
+          *ngIf="selectedBooking.bookingStatus === 'RETURNED' && selectedBooking.paymentStatus === 'FULLY_PAID'"
+          type="button"
+          (click)="completeBooking(selectedBooking)"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg"
+        >
+          Complete Booking
+        </button>
+        <!-- Fallback: collect balance after returned if missed -->
+        <button
+          *ngIf="selectedBooking.bookingStatus === 'RETURNED' && selectedBooking.paymentStatus === 'ADVANCE_PAID'"
+          type="button"
+          (click)="markBalanceCollected(selectedBooking)"
+          class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg"
+        >
+          Mark Balance Collected
+        </button>
+
+
+        <button
+          type="button"
+          (click)="closeDetailsModal()"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== DISPATCH MODAL ========== -->
+<div
+  *ngIf="showDispatchModal && selectedBooking"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] px-4"
+>
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">Dispatch Booking</h2>
+        <p class="text-sm text-gray-400">{{ selectedBooking.bookingNumber }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="closeDispatchModal()"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Courier Name</label>
+        <input
+          type="text"
+          [(ngModel)]="dispatchForm.courierName"
+          placeholder="e.g. PickMe Flash / Domex"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Tracking Number</label>
+        <input
+          type="text"
+          [(ngModel)]="dispatchForm.trackingNumber"
+          placeholder="Tracking reference"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button
+        type="button"
+        (click)="dispatchBooking()"
+        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg"
+      >
+        Dispatch
+      </button>
+      <button
+        type="button"
+        (click)="closeDispatchModal()"
+        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

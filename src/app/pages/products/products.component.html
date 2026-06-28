@@ -1,0 +1,639 @@
+<!-- Page Header -->
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Products</h1>
+  <p class="text-sm text-gray-500 mt-1">Manage your camping product inventory.</p>
+</div>
+
+<!-- Messages -->
+<div
+  *ngIf="successMessage"
+  class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2 text-sm"
+>
+  <i class="fas fa-check-circle text-green-600"></i>
+  <span>{{ successMessage }}</span>
+</div>
+
+<div
+  *ngIf="errorMessage"
+  class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 text-sm"
+>
+  <i class="fas fa-exclamation-circle text-red-600"></i>
+  <span>{{ errorMessage }}</span>
+</div>
+
+<!-- Products Table Card -->
+<div class="bg-white rounded-2xl shadow-sm border p-4 sm:p-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div>
+      <h3 class="text-base font-semibold text-gray-800">Product Inventory</h3>
+      <p class="text-xs text-gray-400">All available camping products</p>
+    </div>
+
+    <button
+      (click)="openAddModal()"
+      class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+    >
+      <i class="fas fa-plus text-xs"></i>
+      Add Product
+    </button>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+    <div class="relative md:col-span-2">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onFilterChange()"
+        placeholder="Search by name, ID or description..."
+        class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+      />
+    </div>
+
+    <div class="relative">
+      <select
+        [(ngModel)]="typeFilter"
+        (ngModelChange)="onFilterChange()"
+        class="appearance-none w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+      >
+        <option value="ALL">All Types</option>
+        <option value="SALE">Sale Items</option>
+        <option value="RENTAL">Rental Items</option>
+      </select>
+      <i class="fas fa-filter absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+    </div>
+
+    <div class="relative">
+      <select
+        [(ngModel)]="stockFilter"
+        (ngModelChange)="onFilterChange()"
+        class="appearance-none w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+      >
+        <option value="ALL">All Stock</option>
+        <option value="IN_STOCK">In Stock</option>
+        <option value="LOW_STOCK">Low Stock</option>
+        <option value="OUT_OF_STOCK">Out of Stock</option>
+      </select>
+      <i
+        class="fas fa-boxes-stacked absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"
+      ></i>
+    </div>
+  </div>
+
+  <!-- Active Filter Info -->
+  <div
+    *ngIf="searchTerm || typeFilter !== 'ALL' || stockFilter !== 'ALL'"
+    class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3"
+  >
+    <p class="text-sm text-gray-500">
+      Showing
+      <span class="font-semibold text-gray-800">{{ filteredProducts.length }}</span>
+      matching product(s)
+    </p>
+
+    <button
+      type="button"
+      (click)="clearFilters()"
+      class="inline-flex items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600"
+    >
+      <i class="fas fa-times-circle"></i>
+      Clear filters
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="py-12 text-center text-gray-400">
+    <i class="fas fa-spinner fa-spin text-3xl mb-3 block text-green-600"></i>
+    Loading products...
+  </div>
+
+  <!-- Desktop Table -->
+  <div *ngIf="!loading" class="hidden sm:block">
+    <table class="w-full text-sm table-fixed">
+      <thead>
+        <tr class="text-left border-b">
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium w-20">Image</th>
+          <th class="pb-3 pr-6 text-xs text-gray-400 font-medium w-[35%]">Product</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium w-24">Type</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium w-36">Stock</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium w-32">Price</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium w-24">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        <tr *ngFor="let p of paginatedProducts" class="hover:bg-gray-50 transition">
+          <!-- Image -->
+          <td class="py-4 pr-4">
+            <div
+              class="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0"
+            >
+              <img
+                *ngIf="p.imageUrl"
+                [src]="p.imageUrl"
+                [alt]="p.productName"
+                class="w-full h-full object-cover"
+              />
+              <i *ngIf="!p.imageUrl" class="fas fa-box text-gray-300 text-lg"></i>
+            </div>
+          </td>
+
+          <!-- Product Name + ID + Description -->
+          <td class="py-4 pr-6">
+            <p class="font-semibold text-gray-800 text-sm truncate">{{ p.productName }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ p.productId }}</p>
+            <p *ngIf="p.description" class="text-xs text-gray-400 mt-1 truncate">
+              {{ p.description }}
+            </p>
+          </td>
+
+          <!-- Type -->
+          <td class="py-4 pr-4">
+            <span
+              class="px-2.5 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="{
+                'bg-blue-100 text-blue-700': p.type === 'SALE',
+                'bg-green-100 text-green-700': p.type === 'RENTAL',
+              }"
+            >
+              {{ p.type === 'SALE' ? 'Sale' : 'Rental' }}
+            </span>
+          </td>
+
+          <!-- Stock -->
+          <td class="py-4 pr-4">
+            <span
+              class="px-2.5 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="{
+                'bg-green-100 text-green-700': p.stockStatus === 'IN_STOCK',
+                'bg-yellow-100 text-yellow-700': p.stockStatus === 'LOW_STOCK',
+                'bg-red-100 text-red-600': p.stockStatus === 'OUT_OF_STOCK',
+              }"
+            >
+              {{ p.availableUnits }}/{{ p.totalUnits }} · {{ p.stockPercentage | number: '1.0-0' }}%
+            </span>
+          </td>
+
+          <!-- Price -->
+          <td class="py-4 pr-4">
+            <p class="font-semibold text-gray-700 text-sm">LKR {{ p.price | number }}</p>
+            <p class="text-xs text-gray-400">{{ p.type === 'RENTAL' ? 'per day' : 'per unit' }}</p>
+          </td>
+
+          <!-- Actions -->
+          <td class="py-4">
+            <div class="flex items-center gap-1">
+              <button
+                (click)="openViewModal(p)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 transition"
+                title="View"
+              >
+                <i class="fas fa-eye text-gray-400 hover:text-blue-600"></i>
+              </button>
+
+              <button
+                (click)="openEditModal(p)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition"
+                title="Edit"
+              >
+                <i class="fas fa-pen text-gray-400 hover:text-green-600"></i>
+              </button>
+
+              <button
+                (click)="openDeleteModal(p)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition"
+                title="Delete"
+              >
+                <i class="fas fa-trash text-gray-400 hover:text-red-500"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <tr *ngIf="filteredProducts.length === 0">
+          <td colspan="6" class="py-12 text-center text-gray-400">
+            <i class="fas fa-box-open text-3xl mb-3 block text-gray-200"></i>
+            No products found.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Cards -->
+  <div *ngIf="!loading" class="sm:hidden space-y-3">
+    <div *ngFor="let p of paginatedProducts" class="border border-gray-100 rounded-xl p-4">
+      <div class="flex items-start gap-3 mb-3">
+        <div
+          class="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0"
+        >
+          <img
+            *ngIf="p.imageUrl"
+            [src]="p.imageUrl"
+            [alt]="p.productName"
+            class="w-full h-full object-cover"
+          />
+          <i *ngIf="!p.imageUrl" class="fas fa-box text-gray-300 text-lg"></i>
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-800 truncate">{{ p.productName }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ p.productId }}</p>
+          <span
+            [ngClass]="{
+              'bg-blue-100 text-blue-700': p.type === 'SALE',
+              'bg-green-100 text-green-700': p.type === 'RENTAL',
+            }"
+            class="inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-semibold"
+          >
+            {{ p.type === 'SALE' ? 'Sale' : 'Rental' }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <button
+            (click)="openViewModal(p)"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 transition"
+            title="View"
+          >
+            <i class="fas fa-eye text-gray-400 text-xs hover:text-blue-600"></i>
+          </button>
+
+          <button
+            (click)="openEditModal(p)"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-green-50 transition"
+            title="Edit"
+          >
+            <i class="fas fa-pen text-gray-400 text-xs hover:text-green-600"></i>
+          </button>
+
+          <button
+            (click)="openDeleteModal(p)"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 transition"
+            title="Delete"
+          >
+            <i class="fas fa-trash text-gray-400 text-xs hover:text-red-500"></i>
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="p.description" class="text-xs text-gray-400 mb-3 line-clamp-2">
+        {{ p.description }}
+      </p>
+
+      <div class="flex items-center justify-between pt-2 border-t border-gray-50 gap-3">
+        <span
+          class="px-2.5 py-1 rounded-full text-xs font-semibold"
+          [ngClass]="{
+            'bg-green-100 text-green-700': p.stockStatus === 'IN_STOCK',
+            'bg-yellow-100 text-yellow-700': p.stockStatus === 'LOW_STOCK',
+            'bg-red-100 text-red-600': p.stockStatus === 'OUT_OF_STOCK',
+          }"
+        >
+          {{ p.availableUnits }}/{{ p.totalUnits }} · {{ p.stockPercentage | number: '1.0-0' }}%
+        </span>
+
+        <span class="text-sm font-bold text-gray-700">LKR {{ p.price | number }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="filteredProducts.length === 0" class="py-12 text-center text-gray-400">
+      <i class="fas fa-box-open text-3xl mb-3 block text-gray-200"></i>
+      No products found.
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div
+    *ngIf="totalPages > 1"
+    class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t"
+  >
+    <p class="text-xs text-gray-400">Page {{ currentPage }} of {{ totalPages }}</p>
+
+    <div class="flex items-center gap-1">
+      <button
+        (click)="changePage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Prev
+      </button>
+
+      <ng-container *ngFor="let page of pageNumbers">
+        <button
+          *ngIf="page !== '...'"
+          (click)="changePage(+page)"
+          class="w-8 h-8 text-xs rounded-lg border transition font-medium"
+          [ngClass]="{
+            'bg-green-600 text-white border-green-600': currentPage === page,
+            'border-gray-200 text-gray-700 hover:bg-gray-50': currentPage !== page,
+          }"
+        >
+          {{ page }}
+        </button>
+
+        <span
+          *ngIf="page === '...'"
+          class="w-8 h-8 text-xs flex items-center justify-center text-gray-400"
+        >
+          ...
+        </span>
+      </ng-container>
+
+      <button
+        (click)="changePage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ADD / EDIT MODAL ========== -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
+      <div>
+        <h3 class="text-lg font-bold text-gray-800">
+          {{ isEditing ? 'Edit Product' : 'Add Product' }}
+        </h3>
+        <p class="text-xs text-gray-400">
+          {{ isEditing ? 'Update product inventory details' : 'Create a new product' }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        (click)="closeModal()"
+        class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center"
+      >
+        <i class="fas fa-times text-gray-400"></i>
+      </button>
+    </div>
+
+    <form (ngSubmit)="saveProduct()" class="p-6 space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Product ID</label>
+          <input
+            type="text"
+            [(ngModel)]="newProduct.productId"
+            name="productId"
+            required
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            placeholder="Ex: P001"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+          <input
+            type="text"
+            [(ngModel)]="newProduct.productName"
+            name="productName"
+            required
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            placeholder="Ex: Camping Tent"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          [(ngModel)]="newProduct.description"
+          name="description"
+          rows="3"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+          placeholder="Enter product description..."
+        ></textarea>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+          <select
+            [(ngModel)]="newProduct.type"
+            name="type"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+          >
+            <option value="SALE">Sale</option>
+            <option value="RENTAL">Rental</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Price</label>
+          <input
+            type="number"
+            [(ngModel)]="newProduct.price"
+            name="price"
+            min="0"
+            required
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            placeholder="Ex: 2500"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Total Units</label>
+          <input
+            type="number"
+            [(ngModel)]="newProduct.totalUnits"
+            name="totalUnits"
+            min="0"
+            required
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            placeholder="Total stock/business owns"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Available Units</label>
+          <input
+            type="number"
+            [(ngModel)]="newProduct.availableUnits"
+            name="availableUnits"
+            min="0"
+            required
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            placeholder="Currently available"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div
+            class="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0"
+          >
+            <img
+              *ngIf="previewUrl || newProduct.imageUrl"
+              [src]="previewUrl || newProduct.imageUrl"
+              class="w-full h-full object-cover"
+            />
+            <i
+              *ngIf="!previewUrl && !newProduct.imageUrl"
+              class="fas fa-image text-gray-300 text-2xl"
+            ></i>
+          </div>
+
+          <div class="flex-1">
+            <input
+              type="file"
+              accept="image/*"
+              (change)="onImageSelected($event)"
+              class="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+        <button
+          type="button"
+          (click)="closeModal()"
+          class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          [disabled]="saving"
+          class="px-5 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+          {{ saving ? 'Saving...' : isEditing ? 'Update Product' : 'Add Product' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== VIEW PRODUCT MODAL ========== -->
+<div
+  *ngIf="showViewModal && selectedProduct"
+  class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b">
+      <h3 class="text-lg font-bold text-gray-800">Product Details</h3>
+
+      <button
+        type="button"
+        (click)="closeViewModal()"
+        class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center"
+      >
+        <i class="fas fa-times text-gray-400"></i>
+      </button>
+    </div>
+
+    <div class="p-6">
+      <div
+        class="w-full h-52 rounded-2xl bg-gray-100 overflow-hidden flex items-center justify-center mb-5"
+      >
+        <img
+          *ngIf="selectedProduct.imageUrl"
+          [src]="selectedProduct.imageUrl"
+          [alt]="selectedProduct.productName"
+          class="w-full h-full object-cover"
+        />
+        <i *ngIf="!selectedProduct.imageUrl" class="fas fa-box text-gray-300 text-4xl"></i>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <p class="text-xs text-gray-400">Product ID</p>
+          <p class="text-sm font-semibold text-gray-800">{{ selectedProduct.productId }}</p>
+        </div>
+
+        <div>
+          <p class="text-xs text-gray-400">Product Name</p>
+          <p class="text-sm font-semibold text-gray-800">{{ selectedProduct.productName }}</p>
+        </div>
+
+        <div>
+          <p class="text-xs text-gray-400">Type</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {{ selectedProduct.type === 'SALE' ? 'Sale' : 'Rental' }}
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs text-gray-400">Stock</p>
+          <span
+            class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-semibold"
+            [ngClass]="{
+              'bg-green-100 text-green-700': selectedProduct.stockStatus === 'IN_STOCK',
+              'bg-yellow-100 text-yellow-700': selectedProduct.stockStatus === 'LOW_STOCK',
+              'bg-red-100 text-red-600': selectedProduct.stockStatus === 'OUT_OF_STOCK',
+            }"
+          >
+            {{ selectedProduct.availableUnits }}/{{ selectedProduct.totalUnits }} available ·
+            {{ selectedProduct.stockPercentage | number: '1.0-0' }}%
+          </span>
+        </div>
+
+        <div>
+          <p class="text-xs text-gray-400">Price</p>
+          <p class="text-sm font-semibold text-gray-800">
+            LKR {{ selectedProduct.price | number }}
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs text-gray-400">Description</p>
+          <p class="text-sm text-gray-600">{{ selectedProduct.description || '—' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DELETE CONFIRMATION MODAL ========== -->
+<div
+  *ngIf="showDeleteModal && productToDelete"
+  class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+      <i class="fas fa-trash text-red-500"></i>
+    </div>
+
+    <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Product</h3>
+
+    <p class="text-sm text-gray-500 mb-6">
+      Are you sure you want to delete
+      <span class="font-semibold text-gray-800">{{ productToDelete.productName }}</span
+      >? This action cannot be undone.
+    </p>
+
+    <div class="flex justify-end gap-3">
+      <button
+        type="button"
+        (click)="closeDeleteModal()"
+        class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        (click)="confirmDelete()"
+        [disabled]="deleting"
+        class="px-5 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center gap-2"
+      >
+        <i *ngIf="deleting" class="fas fa-spinner fa-spin"></i>
+        {{ deleting ? 'Deleting...' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,552 @@
+<!-- Page Header -->
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Orders</h1>
+  <p class="text-sm text-gray-500 mt-1">Track and manage all customer product orders.</p>
+</div>
+
+<!-- Messages -->
+<div
+  *ngIf="successMessage"
+  class="mb-5 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm"
+>
+  <i class="fas fa-check-circle mr-2"></i>
+  {{ successMessage }}
+</div>
+
+<div
+  *ngIf="errorMessage"
+  class="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
+>
+  <i class="fas fa-exclamation-circle mr-2"></i>
+  {{ errorMessage }}
+</div>
+
+<!-- Orders Card -->
+<div class="bg-white rounded-2xl shadow-sm border p-4 sm:p-6">
+
+  <!-- Header -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+    <div>
+      <h3 class="text-base font-semibold text-gray-800">All Orders</h3>
+      <p class="text-xs text-gray-400">
+        Showing {{ paginatedOrders.length }} of {{ filteredOrders.length }} orders
+        <span *ngIf="filteredOrders.length !== orders.length">(filtered from {{ orders.length }} total)</span>
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="loadOrders()"
+      class="w-full lg:w-auto bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+    >
+      <i class="fas fa-sync-alt text-xs"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="grid grid-cols-1 md:grid-cols-[1fr_200px_160px_auto] gap-3 mb-6">
+    <div class="relative">
+      <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (input)="applyFilters()"
+        placeholder="Search by order number, customer name, or email..."
+        class="w-full h-11 pl-11 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+      />
+    </div>
+
+    <select
+      [(ngModel)]="statusFilter"
+      (change)="applyFilters()"
+      class="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+    >
+      <option value="ALL">All Statuses</option>
+      <option value="PENDING_PAYMENT">Pending Payment</option>
+      <option value="PROCESSING">Processing</option>
+      <option value="DISPATCHED">Dispatched</option>
+      <option value="DELIVERED">Delivered</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+
+      <select
+      [(ngModel)]="sortOrder"
+      (change)="applyFilters()"
+      class="h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+    >
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+    </select>
+
+    <button
+      type="button"
+      (click)="clearFilters()"
+      class="h-11 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-semibold"
+    >
+      Clear
+    </button>
+
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="py-16 text-center text-gray-400">
+    <i class="fas fa-spinner fa-spin text-3xl mb-3 block text-green-700"></i>
+    <p class="text-sm">Loading orders...</p>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && filteredOrders.length === 0" class="py-16 text-center text-gray-400">
+    <i class="fas fa-box-open text-4xl mb-3 block text-gray-300"></i>
+    <p class="text-sm">No customer orders found.</p>
+  </div>
+
+  <!-- Desktop Table -->
+  <div *ngIf="!loading && filteredOrders.length > 0" class="hidden sm:block overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left border-b">
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Order No</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Date</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Customer</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Items</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Total</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Order Status</th>
+          <th class="pb-3 pr-4 text-xs text-gray-400 font-medium">Payment</th>
+          <th class="pb-3 text-xs text-gray-400 font-medium">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        <tr *ngFor="let o of paginatedOrders" class="hover:bg-gray-50 transition">
+
+          <!-- Order Number -->
+          <td class="py-4 pr-4">
+            <p class="font-semibold text-gray-700 text-sm">{{ o.orderNumber }}</p>
+          </td>
+
+          <!-- Date -->
+          <td class="py-4 pr-4 text-gray-500 text-xs whitespace-nowrap">
+            {{ o.createdAt | date: 'dd MMM yyyy' }}<br />
+            <span class="text-gray-400">{{ o.createdAt | date: 'h:mm a' }}</span>
+          </td>
+
+          <!-- Customer -->
+          <td class="py-4 pr-4">
+            <div class="flex items-center gap-2">
+              <div
+                class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              >
+                {{ getCustomerInitial(o.customerName) }}
+              </div>
+              <div>
+                <p class="text-gray-700 font-medium text-sm">{{ o.customerName }}</p>
+                <p class="text-xs text-gray-400">{{ o.customerEmail }}</p>
+              </div>
+            </div>
+          </td>
+
+          <!-- Items Summary -->
+          <td class="py-4 pr-4">
+            <p class="text-sm text-gray-600">{{ getItemsText(o) }}</p>
+            <p class="text-xs text-gray-400">× {{ getTotalQuantity(o) }} item(s)</p>
+          </td>
+
+          <!-- Total -->
+          <td class="py-4 pr-4">
+            <p class="font-semibold text-gray-700 text-sm">LKR {{ o.totalAmount | number }}</p>
+          </td>
+
+          <!-- Order Status -->
+          <td class="py-4 pr-4">
+            <span
+              class="px-3 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="getStatusClass(o.orderStatus)"
+            >
+              {{ formatStatus(o.orderStatus) }}
+            </span>
+          </td>
+
+          <!-- Payment Status -->
+          <td class="py-4 pr-4">
+            <span
+              class="px-3 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="getStatusClass(o.paymentStatus)"
+            >
+              {{ formatStatus(o.paymentStatus) }}
+            </span>
+          </td>
+
+          <!-- Actions -->
+          <td class="py-4">
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                (click)="openViewModal(o)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition"
+                title="View order"
+              >
+                <i class="fas fa-eye text-gray-400 hover:text-green-600"></i>
+              </button>
+
+              <button
+                *ngIf="canDispatch(o)"
+                type="button"
+                (click)="openDispatchModal(o)"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 transition"
+                title="Dispatch order"
+              >
+                <i class="fas fa-truck text-gray-400 hover:text-blue-600"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Cards -->
+  <div *ngIf="!loading && filteredOrders.length > 0" class="sm:hidden space-y-3">
+    <div *ngFor="let o of paginatedOrders" class="border border-gray-100 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-gray-700">{{ o.orderNumber }}</span>
+        <span
+          class="px-2.5 py-1 rounded-full text-xs font-semibold"
+          [ngClass]="getStatusClass(o.orderStatus)"
+        >
+          {{ formatStatus(o.orderStatus) }}
+        </span>
+      </div>
+
+      <p class="text-xs text-gray-400 mb-3">{{ o.createdAt | date: 'dd MMM yyyy, h:mm a' }}</p>
+
+      <div class="flex items-center gap-2 mb-3">
+        <div
+          class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold"
+        >
+          {{ getCustomerInitial(o.customerName) }}
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-700">{{ o.customerName }}</p>
+          <p class="text-xs text-gray-400">{{ o.customerEmail }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t">
+        <div>
+          <p class="text-sm font-bold text-green-700">LKR {{ o.totalAmount | number }}</p>
+          <p class="text-xs text-gray-400">{{ getItemsText(o) }} · × {{ getTotalQuantity(o) }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="openViewModal(o)"
+            class="px-3 py-1.5 text-xs rounded-lg bg-green-50 text-green-700 font-semibold"
+          >
+            View
+          </button>
+          <button
+            *ngIf="canDispatch(o)"
+            type="button"
+            (click)="openDispatchModal(o)"
+            class="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 font-semibold"
+          >
+            Dispatch
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div
+    *ngIf="totalPages > 1"
+    class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t"
+  >
+    <p class="text-xs text-gray-400">Page {{ currentPage }} of {{ totalPages }}</p>
+
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        (click)="changePage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Prev
+      </button>
+
+      <ng-container *ngFor="let page of pageNumbers">
+        <button
+          *ngIf="page !== '...'"
+          type="button"
+          (click)="changePage(+page)"
+          class="w-8 h-8 text-xs rounded-lg border transition font-medium"
+          [ngClass]="{
+            'bg-green-600 text-white border-green-600': currentPage === page,
+            'border-gray-200 text-gray-700 hover:bg-gray-50': currentPage !== page
+          }"
+        >
+          {{ page }}
+        </button>
+
+        <span
+          *ngIf="page === '...'"
+          class="w-8 h-8 text-xs flex items-center justify-center text-gray-400"
+        >
+          ...
+        </span>
+      </ng-container>
+
+      <button
+        type="button"
+        (click)="changePage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== VIEW ORDER MODAL ========== -->
+<div
+  *ngIf="selectedOrder"
+  class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4"
+>
+  <div
+    class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto"
+  >
+    <!-- Modal Header -->
+    <div class="p-5 sm:p-6 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">{{ selectedOrder.orderNumber }}</h2>
+        <p class="text-xs text-gray-400 mt-0.5">
+          Placed on {{ selectedOrder.createdAt | date: 'dd MMM yyyy, h:mm a' }}
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="closeViewModal()"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="p-5 sm:p-8 space-y-6">
+
+      <!-- Status Row -->
+      <div class="flex flex-wrap gap-3">
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
+          <span class="text-xs text-gray-400">Order</span>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="getStatusClass(selectedOrder.orderStatus)"
+          >
+            {{ formatStatus(selectedOrder.orderStatus) }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5">
+          <span class="text-xs text-gray-400">Payment</span>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="getStatusClass(selectedOrder.paymentStatus)"
+          >
+            {{ formatStatus(selectedOrder.paymentStatus) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Customer + Tracking -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-gray-50 rounded-xl p-4">
+          <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Customer</p>
+          <p class="font-semibold text-gray-800">{{ selectedOrder.customerName }}</p>
+          <p class="text-sm text-gray-500 mt-0.5">{{ selectedOrder.customerEmail }}</p>
+        </div>
+
+        <div class="bg-gray-50 rounded-xl p-4">
+          <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Tracking</p>
+          <ng-container *ngIf="selectedOrder.trackingNumber; else noTracking">
+            <p class="text-sm text-gray-700 font-medium">{{ selectedOrder.courierName }}</p>
+            <p class="text-sm text-gray-600">{{ selectedOrder.trackingNumber }}</p>
+            <p class="text-xs text-gray-400 mt-1">
+              Dispatched: {{ selectedOrder.dispatchedAt | date: 'dd MMM yyyy, h:mm a' }}
+            </p>
+          </ng-container>
+          <ng-template #noTracking>
+            <p class="text-sm text-gray-400">Not dispatched yet.</p>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Delivery Details -->
+      <div class="bg-green-50 border border-green-100 rounded-xl p-4">
+        <p class="text-xs text-green-700 mb-3 font-medium uppercase tracking-wide">
+          <i class="fas fa-map-marker-alt mr-1.5"></i>Delivery Information
+        </p>
+        <div class="grid md:grid-cols-2 gap-3 text-sm">
+          <div>
+            <span class="text-xs text-gray-400">Full Name</span>
+            <p class="font-medium text-gray-800 mt-0.5">{{ selectedOrder.deliveryFullName || '-' }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-gray-400">Phone</span>
+            <p class="font-medium text-gray-800 mt-0.5">{{ selectedOrder.deliveryPhone || '-' }}</p>
+          </div>
+          <div class="md:col-span-2">
+            <span class="text-xs text-gray-400">Address</span>
+            <p class="font-medium text-gray-800 mt-0.5">
+              {{ selectedOrder.deliveryAddressLine1 }}
+              <span *ngIf="selectedOrder.deliveryAddressLine2">, {{ selectedOrder.deliveryAddressLine2 }}</span>
+            </p>
+          </div>
+          <div>
+            <span class="text-xs text-gray-400">City</span>
+            <p class="font-medium text-gray-800 mt-0.5">{{ selectedOrder.deliveryCity || '-' }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-gray-400">District / Postal Code</span>
+            <p class="font-medium text-gray-800 mt-0.5">
+              {{ selectedOrder.deliveryDistrict || '-' }}
+              <span *ngIf="selectedOrder.deliveryPostalCode"> · {{ selectedOrder.deliveryPostalCode }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div>
+        <h3 class="font-semibold text-gray-800 mb-3">Order Items</h3>
+        <div class="space-y-3">
+          <div
+            *ngFor="let item of selectedOrder.items"
+            class="flex items-center justify-between border rounded-xl p-3"
+          >
+            <div class="flex items-center gap-3">
+              <img
+                [src]="item.imageUrl || 'images/products/placeholder.png'"
+                [alt]="item.productName"
+                class="w-14 h-14 object-cover rounded-lg bg-gray-100 flex-shrink-0"
+              />
+              <div>
+                <p class="font-medium text-gray-800 text-sm">{{ item.productName }}</p>
+                <p class="text-xs text-gray-400">{{ item.productId }}</p>
+                <p class="text-sm text-gray-500 mt-0.5">
+                  LKR {{ item.unitPrice | number }} × {{ item.quantity }}
+                </p>
+              </div>
+            </div>
+            <p class="font-bold text-gray-800 text-sm whitespace-nowrap">
+              LKR {{ item.lineTotal | number }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Totals -->
+      <div class="border-t pt-4 space-y-2">
+        <div class="flex justify-between text-sm text-gray-500">
+          <span>Subtotal</span>
+          <span>LKR {{ selectedOrder.subtotal | number }}</span>
+        </div>
+        <div class="flex justify-between text-sm text-gray-500">
+          <span>Delivery Charge</span>
+          <span>LKR {{ selectedOrder.deliveryCharge | number }}</span>
+        </div>
+        <div class="flex justify-between text-base font-bold text-gray-800 pt-2 border-t">
+          <span>Total</span>
+          <span>LKR {{ selectedOrder.totalAmount | number }}</span>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="flex justify-end gap-3 pt-2">
+        <button
+          *ngIf="canDispatch(selectedOrder)"
+          type="button"
+          (click)="openDispatchModal(selectedOrder)"
+          class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+        >
+          <i class="fas fa-truck mr-1.5"></i> Dispatch Order
+        </button>
+        <button
+          type="button"
+          (click)="closeViewModal()"
+          class="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== DISPATCH MODAL ========== -->
+<div
+  *ngIf="showDispatchModal"
+  class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] px-0 sm:px-4"
+>
+  <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-5 sm:p-7">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">Dispatch Order</h2>
+        <p class="text-sm text-gray-400">{{ dispatchOrderData?.orderNumber }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="closeDispatchModal()"
+        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl p-4 mb-5">
+      Enter courier details below. The customer will receive a shipment email with the tracking number.
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Courier Service *</label>
+        <input
+          type="text"
+          [(ngModel)]="dispatchForm.courierName"
+          placeholder="e.g. Domex, DHL, Pronto"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Tracking Number *</label>
+        <input
+          type="text"
+          [(ngModel)]="dispatchForm.trackingNumber"
+          placeholder="e.g. DX123456789"
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button
+        type="button"
+        (click)="submitDispatch()"
+        [disabled]="dispatching"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2.5 rounded-lg transition"
+      >
+        {{ dispatching ? 'Dispatching...' : 'Dispatch & Send Email' }}
+      </button>
+      <button
+        type="button"
+        (click)="closeDispatchModal()"
+        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

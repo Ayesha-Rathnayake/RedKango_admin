@@ -1,0 +1,485 @@
+<!-- Page Header -->
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Settings</h1>
+  <p class="text-sm text-gray-500 mt-1">Manage your profile, account security, and system policies.</p>
+</div>
+
+<!-- Tabs -->
+<div class="mb-6 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+  <div class="grid grid-cols-4 gap-2">
+
+    <button
+      type="button"
+      (click)="setTab('profile')"
+      [ngClass]="activeTab === 'profile' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+      class="flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition"
+    >
+      <i class="fas fa-user text-base"></i>
+      <span class="hidden sm:inline">Profile</span>
+    </button>
+
+    <button
+      type="button"
+      (click)="setTab('security')"
+      [ngClass]="activeTab === 'security' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+      class="flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition"
+    >
+      <i class="fas fa-shield-alt text-base"></i>
+      <span class="hidden sm:inline">Security</span>
+    </button>
+
+    <button
+      type="button"
+      (click)="setTab('terms')"
+      [ngClass]="activeTab === 'terms' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+      class="flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition"
+    >
+      <i class="fas fa-file-contract text-base"></i>
+      <span class="hidden sm:inline">Terms</span>
+    </button>
+
+    <button
+      type="button"
+      (click)="setTab('site')"
+      [ngClass]="activeTab === 'site' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+      class="flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition"
+    >
+      <i class="fas fa-globe text-base"></i>
+      <span class="hidden sm:inline">Site settings</span>
+    </button>
+
+  </div>
+</div>
+
+<!-- ==================== PROFILE ==================== -->
+<div *ngIf="activeTab === 'profile'" class="grid gap-6 xl:grid-cols-[360px_1fr]">
+
+  <!-- Photo card -->
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-base font-bold text-slate-900">Profile photo</h2>
+    <p class="mt-1 text-sm text-slate-500">Update your display image.</p>
+
+    <div class="mt-6 flex flex-col items-center">
+      <div class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-green-100 bg-green-50 shadow-sm">
+        <img *ngIf="previewUrl" [src]="previewUrl" class="h-full w-full object-cover" />
+        <span *ngIf="!previewUrl" class="text-4xl font-bold text-green-700">
+          {{ editAdmin.name.charAt(0).toUpperCase() || 'A' }}
+        </span>
+      </div>
+
+      <label class="mt-5 cursor-pointer rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">
+        Change photo
+        <input type="file" hidden accept="image/*" (change)="onFileSelected($event)" />
+      </label>
+
+      <button
+        *ngIf="previewUrl"
+        type="button"
+        (click)="removeProfileImage()"
+        class="mt-3 text-sm font-medium text-red-500 hover:underline"
+      >
+        Remove photo
+      </button>
+    </div>
+  </div>
+
+  <!-- Info card -->
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-base font-bold text-slate-900">Profile information</h2>
+    <p class="mt-1 text-sm text-slate-500">Update your admin account details.</p>
+
+    <div
+      *ngIf="profileMessage"
+      [ngClass]="{
+        'border-green-200 bg-green-50 text-green-700': profileMessageType === 'success',
+        'border-red-200 bg-red-50 text-red-700': profileMessageType === 'error'
+      }"
+      class="mt-5 rounded-xl border px-4 py-3 text-sm"
+    >
+      {{ profileMessage }}
+    </div>
+
+    <div class="mt-6 grid gap-5 md:grid-cols-2">
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Full name</label>
+        <input
+          [(ngModel)]="editAdmin.name"
+          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+        />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Email</label>
+        <input
+          [(ngModel)]="editAdmin.email"
+          readonly
+          class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500"
+        />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Phone</label>
+        <input
+          [(ngModel)]="editAdmin.phone"
+          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+        />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Role</label>
+        <input
+          [(ngModel)]="editAdmin.role"
+          readonly
+          class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500"
+        />
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end">
+      <button
+        type="button"
+        (click)="saveProfile()"
+        [disabled]="savingProfile"
+        class="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+      >
+        {{ savingProfile ? 'Saving...' : 'Save changes' }}
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== SECURITY ==================== -->
+<div *ngIf="activeTab === 'security'" class="max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <h2 class="text-base font-bold text-slate-900">Privacy and security</h2>
+  <p class="mt-1 text-sm text-slate-500">Change your account password securely.</p>
+
+  <div
+    *ngIf="passwordMessage"
+    [ngClass]="{
+      'border-green-200 bg-green-50 text-green-700': passwordMessageType === 'success',
+      'border-red-200 bg-red-50 text-red-700': passwordMessageType === 'error'
+    }"
+    class="mt-5 rounded-xl border px-4 py-3 text-sm"
+  >
+    {{ passwordMessage }}
+  </div>
+
+  <div class="mt-6 grid gap-5">
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-500">Current password</label>
+      <input
+        [type]="showCurrentPassword ? 'text' : 'password'"
+        [(ngModel)]="passwordForm.currentPassword"
+        class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+      />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-500">New password</label>
+      <input
+        [type]="showNewPassword ? 'text' : 'password'"
+        [(ngModel)]="passwordForm.newPassword"
+        class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+      />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-500">Confirm new password</label>
+      <input
+        [type]="showConfirmPassword ? 'text' : 'password'"
+        [(ngModel)]="passwordForm.confirmPassword"
+        class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+      />
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-end">
+    <button
+      type="button"
+      (click)="updatePassword()"
+      [disabled]="changingPassword"
+      class="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+    >
+      {{ changingPassword ? 'Updating...' : 'Update password' }}
+    </button>
+  </div>
+</div>
+
+<!-- ==================== TERMS ==================== -->
+<div *ngIf="activeTab === 'terms'" class="grid gap-6 xl:grid-cols-[1fr_420px]">
+
+  <!-- Form card -->
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-base font-bold text-slate-900">Terms and conditions</h2>
+    <p class="mt-1 text-sm text-slate-500">Create and manage the policy shown on the signup page.</p>
+
+    <div
+      *ngIf="termsMessage"
+      [ngClass]="{
+        'border-green-200 bg-green-50 text-green-700': termsMessageType === 'success',
+        'border-red-200 bg-red-50 text-red-700': termsMessageType === 'error'
+      }"
+      class="mt-5 rounded-xl border px-4 py-3 text-sm"
+    >
+      {{ termsMessage }}
+    </div>
+
+    <div class="mt-6 grid gap-5 md:grid-cols-2">
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Title</label>
+        <input
+          [(ngModel)]="termsForm.title"
+          placeholder="Terms and Conditions"
+          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+        />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-semibold text-slate-500">Version</label>
+        <input
+          [(ngModel)]="termsForm.version"
+          placeholder="v1.0"
+          class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+        />
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <label class="mb-1 block text-xs font-semibold text-slate-500">Content</label>
+      <textarea
+        [(ngModel)]="termsForm.content"
+        rows="12"
+        placeholder="Enter terms and conditions here..."
+        class="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+      ></textarea>
+    </div>
+
+    <div class="mt-5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-slate-700">Active version</p>
+        <p class="text-xs text-slate-500">Show this version on the user signup page.</p>
+      </div>
+      <input type="checkbox" [(ngModel)]="termsForm.active" class="h-5 w-5 accent-green-600" />
+    </div>
+
+    <div class="mt-6 flex flex-wrap justify-end gap-3">
+      <button
+        type="button"
+        (click)="resetTermsForm()"
+        class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Clear
+      </button>
+      <button
+        type="button"
+        (click)="saveTerms()"
+        [disabled]="termsSaving"
+        class="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+      >
+        {{ termsSaving ? 'Saving...' : termsForm.id ? 'Update terms' : 'Publish terms' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Saved list card -->
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h3 class="text-base font-bold text-slate-900">Saved versions</h3>
+    <p class="mt-1 text-sm text-slate-500">Manage existing versions.</p>
+
+    <div *ngIf="termsLoading" class="mt-5 text-sm text-slate-500">Loading terms...</div>
+
+    <div
+      *ngIf="!termsLoading && termsList.length === 0"
+      class="mt-5 rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500"
+    >
+      No terms added yet.
+    </div>
+
+    <div class="mt-5 space-y-3" *ngIf="termsList.length > 0">
+      <div
+        *ngFor="let item of termsList"
+        class="rounded-xl border border-slate-200 p-4 transition hover:border-green-200 hover:bg-green-50/30"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h4 class="text-sm font-semibold text-slate-800">{{ item.title }}</h4>
+            <p class="mt-1 text-xs text-slate-500">Version {{ item.version }}</p>
+          </div>
+          <span
+            [ngClass]="item.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'"
+            class="rounded-full px-2.5 py-1 text-xs font-semibold"
+          >
+            {{ item.active ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            (click)="editTerms(item)"
+            class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            (click)="deleteTerms(item.id)"
+            class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== SITE SETTINGS ==================== -->
+<div *ngIf="activeTab === 'site'" class="space-y-5">
+
+  <div
+    *ngIf="siteMessage"
+    [ngClass]="{
+      'border-green-200 bg-green-50 text-green-700': siteMessageType === 'success',
+      'border-red-200 bg-red-50 text-red-700': siteMessageType === 'error'
+    }"
+    class="rounded-xl border px-4 py-3 text-sm"
+  >
+    {{ siteMessage }}
+  </div>
+
+  <div *ngIf="siteLoading" class="py-10 text-center text-sm text-slate-400">
+    <i class="fas fa-spinner fa-spin mr-2"></i> Loading...
+  </div>
+
+  <ng-container *ngIf="!siteLoading">
+
+    <!-- Contact info card -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 class="border-b border-slate-100 pb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Contact information
+      </h3>
+
+      <div class="mt-5 grid gap-5 md:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Business name</label>
+          <input
+            [(ngModel)]="siteForm.businessName"
+            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Phone number</label>
+          <input
+            [(ngModel)]="siteForm.phone"
+            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Email address</label>
+          <input
+            [(ngModel)]="siteForm.email"
+            type="email"
+            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Address</label>
+          <input
+            [(ngModel)]="siteForm.address"
+            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          />
+        </div>
+       
+        <div class="md:col-span-2">
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Footer tagline</label>
+          <textarea
+            [(ngModel)]="siteForm.tagline"
+            rows="2"
+            placeholder="Your one-stop shop for camping adventures in Sri Lanka."
+            class="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social media card -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 class="border-b border-slate-100 pb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Social media links
+      </h3>
+
+      <div class="mt-5 space-y-4">
+
+        <div class="flex items-center gap-4">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
+            <i class="fab fa-whatsapp text-lg"></i>
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-semibold text-slate-500">
+              WhatsApp number
+              <span class="ml-1 font-normal text-slate-400">(digits only, e.g. 94711653766)</span>
+            </label>
+            <input
+              [(ngModel)]="siteForm.whatsappNumber"
+              placeholder="94711653766"
+              class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <i class="fab fa-facebook text-lg"></i>
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-semibold text-slate-500">Facebook URL</label>
+            <input
+              [(ngModel)]="siteForm.facebookUrl"
+              placeholder="https://facebook.com/redkango"
+              class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-pink-50 text-pink-600">
+            <i class="fab fa-instagram text-lg"></i>
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-semibold text-slate-500">Instagram URL</label>
+            <input
+              [(ngModel)]="siteForm.instagramUrl"
+              placeholder="https://instagram.com/redkango"
+              class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+            <i class="fab fa-youtube text-lg"></i>
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-semibold text-slate-500">YouTube URL</label>
+            <input
+              [(ngModel)]="siteForm.youtubeUrl"
+              placeholder="https://youtube.com/@redkango"
+              class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Save button -->
+    <div class="flex justify-end">
+      <button
+        (click)="saveSiteSettings()"
+        [disabled]="siteSaving"
+        class="rounded-xl bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
+      >
+        {{ siteSaving ? 'Saving...' : 'Save site settings' }}
+      </button>
+    </div>
+
+  </ng-container>
+
+</div>
