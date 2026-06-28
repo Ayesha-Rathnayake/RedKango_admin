@@ -25,7 +25,8 @@ import { TermsCondition } from '../../models/terms.model';
 type SettingsTab =
   | 'profile'
   | 'security'
-  | 'terms';
+  | 'terms'
+  | 'site' ;
 
 @Component({
   selector: 'app-settings',
@@ -133,6 +134,8 @@ export class SettingsComponent
     this.loadAdminProfile();
 
     this.loadTerms();
+
+    this.loadSiteSettings ();
   }
 
   setTab(
@@ -782,4 +785,61 @@ const request =
       active: true,
     };
   }
+
+    // ================= SITE SETTINGS =================
+
+  siteLoading = false;
+  siteSaving = false;
+  siteMessage = '';
+  siteMessageType: 'success' | 'error' | '' = '';
+
+  siteForm = {
+    businessName: '',
+    phone: '',
+    email: '',
+    address: '',
+    whatsappNumber: '',
+    facebookUrl: '',
+    instagramUrl: '',
+    youtubeUrl: '',
+    tagline: '',
+  };
+
+  loadSiteSettings(): void {
+    this.siteLoading = true;
+    this.adminService.getSiteSettings().subscribe({
+      next: (res) => {
+        this.siteForm = { ...res };
+        this.siteLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.siteLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  saveSiteSettings(): void {
+    this.siteMessage = '';
+    this.siteMessageType = '';
+    this.siteSaving = true;
+
+    this.adminService.updateSiteSettings(this.siteForm).subscribe({
+      next: () => {
+        this.siteMessage = 'Site settings saved successfully.';
+        this.siteMessageType = 'success';
+        this.siteSaving = false;
+        this.cdr.detectChanges();
+        setTimeout(() => { this.siteMessage = ''; this.cdr.detectChanges(); }, 3000);
+      },
+      error: () => {
+        this.siteMessage = 'Failed to save site settings.';
+        this.siteMessageType = 'error';
+        this.siteSaving = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
 }

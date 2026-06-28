@@ -63,9 +63,9 @@
               <div
                 class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
               >
-                {{ r.customer.charAt(0) }}
+                {{ r.name.charAt(0) }}
               </div>
-              <span class="text-gray-700 font-medium">{{ r.customer }}</span>
+              <span class="text-gray-700 font-medium">{{ r.name }}</span>
             </div>
           </td>
 
@@ -139,10 +139,10 @@
           <div
             class="w-8 h-8 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
           >
-            {{ r.customer.charAt(0) }}
+            {{ r.name.charAt(0) }}
           </div>
           <div>
-            <p class="text-sm font-semibold text-gray-800">{{ r.customer }}</p>
+            <p class="text-sm font-semibold text-gray-800">{{ r.name }}</p>
             <p class="text-xs text-gray-400">{{ r.service }}</p>
           </div>
         </div>
@@ -202,43 +202,56 @@
 
 <!-- Pagination -->
 <div
-  *ngIf="filteredReviews.length > itemsPerPage"
-  class="flex items-center justify-center gap-2 mt-6"
+  *ngIf="totalPages > 1"
+  class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6"
 >
-  <!-- Prev -->
-  <button
-    type="button"
-    (click)="changePage(currentPage - 1)"
-    [disabled]="currentPage === 1"
-    class="px-3 py-2 rounded-lg border text-sm disabled:opacity-50 hover:bg-gray-50"
-  >
-    Prev
-  </button>
+  <p class="text-xs text-gray-400">
+    Page {{ currentPage }} of {{ totalPages }}
+  </p>
 
-  <!-- Numbers -->
-  <button
-    type="button"
-    *ngFor="let page of [].constructor(totalPages); let i = index"
-    (click)="changePage(i + 1)"
-    [ngClass]="{
-      'bg-green-600 text-white border-green-600': currentPage === i + 1,
-      'bg-white text-gray-700 border-gray-300': currentPage !== i + 1,
-    }"
-    class="w-9 h-9 rounded-lg border text-sm font-medium transition"
-  >
-    {{ i + 1 }}
-  </button>
+  <div class="flex items-center gap-1">
+    <button
+      type="button"
+      (click)="changePage(currentPage - 1)"
+      [disabled]="currentPage === 1"
+      class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+    >
+      Prev
+    </button>
 
-  <!-- Next -->
-  <button
-    type="button"
-    (click)="changePage(currentPage + 1)"
-    [disabled]="currentPage === totalPages"
-    class="px-3 py-2 rounded-lg border text-sm disabled:opacity-50 hover:bg-gray-50"
-  >
-    Next
-  </button>
+    <ng-container *ngFor="let page of pageNumbers">
+      <button
+        *ngIf="page !== '...'"
+        type="button"
+        (click)="changePage(+page)"
+        class="w-8 h-8 text-xs rounded-lg border transition font-medium"
+        [ngClass]="{
+          'bg-green-600 text-white border-green-600': currentPage === page,
+          'border-gray-200 text-gray-700 hover:bg-gray-50': currentPage !== page
+        }"
+      >
+        {{ page }}
+      </button>
+
+      <span
+        *ngIf="page === '...'"
+        class="w-8 h-8 text-xs flex items-center justify-center text-gray-400"
+      >
+        ...
+      </span>
+    </ng-container>
+
+    <button
+      type="button"
+      (click)="changePage(currentPage + 1)"
+      [disabled]="currentPage === totalPages"
+      class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition"
+    >
+      Next
+    </button>
+  </div>
 </div>
+
 
 <!-- View & Reply Modal -->
 <div
@@ -264,12 +277,12 @@
       <div
         class="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold shrink-0"
       >
-        {{ selectedReview?.customer?.charAt(0) || 'U' }}
+        {{ selectedReview?.name?.charAt(0) || 'U' }}
       </div>
 
       <div class="min-w-0">
         <p class="text-sm font-semibold text-gray-800 truncate">
-          {{ selectedReview?.customer }}
+          {{ selectedReview?.name }}
         </p>
 
         <p class="text-xs text-gray-400 truncate">

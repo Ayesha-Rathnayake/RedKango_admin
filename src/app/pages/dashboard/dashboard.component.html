@@ -1,84 +1,178 @@
 <!-- Page Header -->
 <div class="mb-6 sm:mb-8">
   <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Dashboard</h1>
-  <p class="text-sm text-gray-500 mt-1">
-    Welcome back! Here is what is happening today.
-  </p>
+  <p class="text-sm text-gray-500 mt-1">Welcome back! Here is what is happening today.</p>
 </div>
 
-<div
-  *ngIf="errorMessage"
-  class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
->
-  <i class="fas fa-exclamation-circle mr-2"></i>
-  {{ errorMessage }}
+<div *ngIf="errorMessage"
+  class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+  <i class="fas fa-exclamation-circle mr-2"></i>{{ errorMessage }}
 </div>
 
-<!-- Stats Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+<!-- Row 1: Revenue Overview -->
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Revenue Overview</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 
-  <div class="bg-white rounded-2xl shadow-sm border p-5 sm:p-6 flex justify-between items-center">
-    <div>
-      <p class="text-sm text-gray-500">Total Revenue</p>
-      <h2 class="text-xl sm:text-2xl font-bold text-green-600 mt-1">
-        LKR {{ totalRevenue | number }}
-      </h2>
-      <p class="text-xs text-green-500 mt-1">From rental advances and shop orders</p>
+  <!-- Total Collected -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Total Collected</p>
+      <h2 class="text-xl font-bold text-green-600 mt-1">LKR {{ totalCollectedRevenue | number }}</h2>
+      <div class="mt-2 space-y-1">
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-400">Sales revenue</span>
+          <span class="text-blue-600 font-medium">LKR {{ salesRevenue | number }}</span>
+        </div>
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-400">Rental advances</span>
+          <span class="text-purple-600 font-medium">LKR {{ rentalRevenueCollected | number }}</span>
+        </div>
+      </div>
     </div>
-    <div class="w-11 h-11 sm:w-12 sm:h-12 bg-green-50 rounded-xl flex items-center justify-center">
+    <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0 ml-3">
       <i class="fas fa-chart-line text-green-600"></i>
     </div>
   </div>
 
-  <div class="bg-white rounded-2xl shadow-sm border p-5 sm:p-6 flex justify-between items-center">
+
+  <!-- Sales Revenue -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
     <div>
-      <p class="text-sm text-gray-500">Active Rental Bookings</p>
-      <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mt-1">
-        {{ activeBookings }}
-      </h2>
-      <p class="text-xs text-blue-500 mt-1">
-        {{ newBookingsToday }} new today
-      </p>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Sales Revenue</p>
+      <h2 class="text-xl font-bold text-blue-600 mt-1">LKR {{ salesRevenue | number }}</h2>
+      <p class="text-xs text-gray-400 mt-1">From paid shop orders</p>
     </div>
-    <div class="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-      <i class="fas fa-calendar-check text-blue-600"></i>
+    <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+      <i class="fas fa-shopping-bag text-blue-600"></i>
     </div>
   </div>
 
-  <div class="bg-white rounded-2xl shadow-sm border p-5 sm:p-6 flex justify-between items-center">
-    <div>
-      <p class="text-sm text-gray-500">Products Sold</p>
-      <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mt-1">
-        {{ productsSold }}
-      </h2>
-      <p class="text-xs text-purple-500 mt-1">From purchase orders</p>
+   <!-- Rental Revenue Collected -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Rental Revenue</p>
+      <h2 class="text-xl font-bold text-purple-600 mt-1">LKR {{ rentalRevenueCollected | number }}</h2>
+
+      <!-- Breakdown -->
+      <div class="mt-2 space-y-1">
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-400">From active bookings</span>
+          <span class="text-gray-600 font-medium">
+            LKR {{ (rentalRevenueCollected - cancelledAdvanceKept) | number }}
+          </span>
+        </div>
+        <div *ngIf="cancelledAfterPayment > 0" class="flex justify-between text-xs">
+          <span class="text-orange-500">
+            Advance kept ({{ cancelledAfterPayment }} cancellation{{ cancelledAfterPayment > 1 ? 's' : '' }})
+          </span>
+          <span class="text-orange-600 font-medium">
+            LKR {{ cancelledAdvanceKept | number }}
+          </span>
+        </div>
+      </div>
     </div>
-    <div class="w-11 h-11 sm:w-12 sm:h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-      <i class="fas fa-shopping-cart text-purple-600"></i>
+    <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0 ml-3">
+      <i class="fas fa-campground text-purple-600"></i>
+    </div>
+  </div>
+
+
+
+  <!-- Pending COD -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Pending COD</p>
+      <h2 class="text-xl font-bold text-orange-500 mt-1">LKR {{ pendingCodAmount | number }}</h2>
+      <p class="text-xs text-gray-400 mt-1">Rental balances to collect</p>
+    </div>
+    <div class="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
+      <i class="fas fa-money-bill-wave text-orange-500"></i>
     </div>
   </div>
 
 </div>
 
-<!-- Recent Bookings -->
+<!-- Row 2: Activity Overview -->
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Activity Overview</p>
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+
+  <!-- Active Rentals -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Active Rentals</p>
+      <h2 class="text-xl font-bold text-gray-800 mt-1">{{ activeRentals }}</h2>
+      <p class="text-xs text-blue-500 mt-1">{{ newBookingsToday }} new today</p>
+    </div>
+    <div class="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center shrink-0">
+      <i class="fas fa-calendar-check text-yellow-500"></i>
+    </div>
+  </div>
+
+   <!-- Total Bookings -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Total Bookings</p>
+      <h2 class="text-xl font-bold text-gray-800 mt-1">{{ totalBookings }}</h2>
+      <div class="mt-2 space-y-1">
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-400">Active / completed</span>
+          <span class="text-gray-600 font-medium">{{ totalBookings - cancelledBookings }}</span>
+        </div>
+        <div *ngIf="cancelledBookings > 0" class="flex justify-between text-xs">
+          <span class="text-red-400">Cancelled</span>
+          <span class="text-red-500 font-medium">{{ cancelledBookings }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0 ml-3">
+      <i class="fas fa-bookmark text-indigo-500"></i>
+    </div>
+  </div>
+
+
+
+  <!-- Total Orders -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Total Orders</p>
+      <h2 class="text-xl font-bold text-gray-800 mt-1">{{ totalOrders }}</h2>
+      <p class="text-xs text-gray-400 mt-1">All shop orders</p>
+    </div>
+    <div class="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center shrink-0">
+      <i class="fas fa-box text-teal-500"></i>
+    </div>
+  </div>
+
+  <!-- Products Sold -->
+  <div class="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-start">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Products Sold</p>
+      <h2 class="text-xl font-bold text-gray-800 mt-1">{{ productsSold }}</h2>
+      <p class="text-xs text-gray-400 mt-1">Items from orders</p>
+    </div>
+    <div class="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center shrink-0">
+      <i class="fas fa-shopping-cart text-pink-500"></i>
+    </div>
+  </div>
+
+</div>
+
+<!-- Row 3: Recent Bookings -->
 <div class="bg-white rounded-2xl shadow-sm border p-4 sm:p-6">
 
   <div class="flex justify-between items-center mb-5 sm:mb-6">
     <div>
       <h3 class="text-base font-semibold text-gray-800">Recent Rental Bookings</h3>
-      <p class="text-xs text-gray-400">Latest real rental bookings</p>
+      <p class="text-xs text-gray-400">Latest 5 bookings</p>
     </div>
-    <a
-      routerLink="/bookings"
-      class="text-sm text-green-600 font-medium hover:underline flex items-center gap-1"
-    >
+    <a routerLink="/bookings"
+      class="text-sm text-green-600 font-medium hover:underline flex items-center gap-1">
       View All <i class="fas fa-arrow-right text-xs"></i>
     </a>
   </div>
 
   <div *ngIf="loading" class="py-10 text-center text-gray-400">
-    <i class="fas fa-spinner fa-spin mr-2"></i>
-    Loading dashboard data...
+    <i class="fas fa-spinner fa-spin mr-2"></i> Loading dashboard data...
   </div>
 
   <!-- Desktop Table -->
@@ -94,13 +188,9 @@
           <th class="pb-3 text-xs text-gray-400 text-center">Action</th>
         </tr>
       </thead>
-
       <tbody class="divide-y">
         <tr *ngFor="let b of recentBookings" class="hover:bg-gray-50 transition">
-          <td class="py-4 font-semibold text-gray-700">
-            {{ b.bookingNumber }}
-          </td>
-
+          <td class="py-4 font-semibold text-gray-700">{{ b.bookingNumber }}</td>
           <td class="py-4">
             <div class="flex items-center gap-2">
               <div class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">
@@ -112,39 +202,23 @@
               </div>
             </div>
           </td>
-
-          <td class="py-4 text-gray-600 max-w-xs truncate">
-            {{ getItemsText(b) }}
-          </td>
-
-          <td class="py-4 text-gray-500">
-            {{ b.rentalStartDate }} → {{ b.rentalEndDate }}
-          </td>
-
+          <td class="py-4 text-gray-600 max-w-xs truncate">{{ getItemsText(b) }}</td>
+          <td class="py-4 text-gray-500">{{ b.rentalStartDate }} → {{ b.rentalEndDate }}</td>
           <td class="py-4">
-            <span
-              class="px-3 py-1 rounded-full text-xs font-semibold"
-              [ngClass]="getStatusClass(b.bookingStatus)"
-            >
+            <span class="px-3 py-1 rounded-full text-xs font-semibold"
+              [ngClass]="getStatusClass(b.bookingStatus)">
               {{ b.bookingStatus }}
             </span>
           </td>
-
           <td class="py-4 text-center">
-            <button
-              type="button"
-              (click)="viewBooking(b.bookingNumber)"
-              class="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-green-50"
-            >
+            <button type="button" (click)="viewBooking(b.bookingNumber)"
+              class="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-green-50">
               <i class="fas fa-eye text-gray-400 hover:text-green-600"></i>
             </button>
           </td>
         </tr>
-
         <tr *ngIf="recentBookings.length === 0">
-          <td colspan="6" class="py-10 text-center text-gray-400">
-            No recent bookings found.
-          </td>
+          <td colspan="6" class="py-10 text-center text-gray-400">No recent bookings found.</td>
         </tr>
       </tbody>
     </table>
@@ -152,53 +226,33 @@
 
   <!-- Mobile Cards -->
   <div *ngIf="!loading" class="sm:hidden space-y-3">
-    <div
-      *ngFor="let b of recentBookings"
-      class="border border-gray-100 rounded-xl p-4"
-    >
+    <div *ngFor="let b of recentBookings" class="border border-gray-100 rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-xs font-semibold text-gray-500">
-          {{ b.bookingNumber }}
-        </span>
-
-        <span
-          class="px-2.5 py-1 rounded-full text-xs font-semibold"
-          [ngClass]="getStatusClass(b.bookingStatus)"
-        >
+        <span class="text-xs font-semibold text-gray-500">{{ b.bookingNumber }}</span>
+        <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
+          [ngClass]="getStatusClass(b.bookingStatus)">
           {{ b.bookingStatus }}
         </span>
       </div>
-
       <div class="flex items-center gap-2 mb-2">
         <div class="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">
           {{ b.customerName.charAt(0) }}
         </div>
-
         <div>
           <p class="text-sm font-medium text-gray-700">{{ b.customerName }}</p>
           <p class="text-xs text-gray-400">{{ b.customerEmail }}</p>
         </div>
       </div>
-
-      <p class="text-xs text-gray-500 mb-1">
-        {{ getItemsText(b) }}
-      </p>
-
-      <p class="text-xs text-gray-400 mb-3">
-        {{ b.rentalStartDate }} → {{ b.rentalEndDate }}
-      </p>
-
-      <button
-        type="button"
-        (click)="viewBooking(b.bookingNumber)"
-        class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 rounded-lg"
-      >
+      <p class="text-xs text-gray-500 mb-1">{{ getItemsText(b) }}</p>
+      <p class="text-xs text-gray-400 mb-3">{{ b.rentalStartDate }} → {{ b.rentalEndDate }}</p>
+      <button type="button" (click)="viewBooking(b.bookingNumber)"
+        class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 rounded-lg">
         View Booking
       </button>
     </div>
-
     <div *ngIf="recentBookings.length === 0" class="py-10 text-center text-gray-400">
       No recent bookings found.
     </div>
   </div>
+
 </div>

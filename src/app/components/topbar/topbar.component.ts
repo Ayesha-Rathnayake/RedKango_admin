@@ -1,8 +1,12 @@
-import { Component, Output, EventEmitter, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
 import { AdminService } from '../../services/admin.service';
+import { NotificationService } from '../../services/notification.service';
+import { AdminNotification } from '../../models/notification.model';
 import {
   AdminProfile,
   AdminViewModel,
@@ -15,7 +19,7 @@ import {
   imports: [CommonModule, FormsModule],
   templateUrl: './topbar.component.html',
 })
-export class TopbarComponent implements OnInit {
+export class TopbarComponent implements OnInit, OnDestroy {
   @Output() menuToggle = new EventEmitter<void>();
 
   showNotifications = false;
@@ -40,11 +44,8 @@ export class TopbarComponent implements OnInit {
   selectedFile: File | null = null;
   previewUrl = '';
 
-  notifications = [
-    { id: 1, message: 'New booking received', time: '2 min ago', read: false },
-    { id: 2, message: 'Payment confirmed', time: '15 min ago', read: false },
-    { id: 3, message: 'New review submitted', time: '1 hour ago', read: false },
-  ];
+  notifications: AdminNotification[] = [];
+  private notificationSub?: Subscription;
 
   admin: AdminViewModel = {
     firstName: '',
@@ -68,15 +69,26 @@ export class TopbarComponent implements OnInit {
   constructor(
     private router: Router,
     private adminService: AdminService,
+    public notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadAdminProfile();
+    this.notificationService.init();
+    this.notificationSub = this.notificationService.getNotifications().subscribe(n => {
+      this.notifications = n;
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.notificationSub?.unsubscribe();
+    this.notificationService.disconnect();
   }
 
   get unreadCount(): number {
-    return this.notifications.filter((n) => !n.read).length;
+    return this.notifications.filter(n => !n.read).length;
   }
 
   private mapAdminProfile(res: AdminProfile): AdminViewModel {
@@ -108,7 +120,6 @@ export class TopbarComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.error('Failed to load admin profile:', err);
-
         this.admin = {
           firstName: '',
           lastName: '',
@@ -119,7 +130,6 @@ export class TopbarComponent implements OnInit {
           avatarUrl: '',
           avatarInitial: 'A',
         };
-
         this.editAdmin = { ...this.admin };
         this.loadingProfile = false;
         this.cdr.detectChanges();
@@ -142,27 +152,24 @@ export class TopbarComponent implements OnInit {
   }
 
   markAsRead(id: number): void {
-    const notification = this.notifications.find((n) => n.id === id);
-    if (notification) notification.read = true;
+    this.notificationService.markAsRead(id);
   }
 
   markAllAsRead(): void {
-    this.notifications.forEach((n) => (n.read = true));
+    this.notificationService.markAllAsRead();
   }
 
   clearNotification(id: number): void {
-    this.notifications = this.notifications.filter((n) => n.id !== id);
+    this.notificationService.remove(id);
   }
 
   openProfileModal(): void {
     this.showProfileMenu = false;
     this.showNotifications = false;
     this.showProfileModal = true;
-
     this.editAdmin = { ...this.admin };
     this.previewUrl = this.admin.avatarUrl;
     this.selectedFile = null;
-
     this.profileMessage = '';
     this.profileMessageType = '';
   }
@@ -177,16 +184,9 @@ export class TopbarComponent implements OnInit {
     this.showProfileMenu = false;
     this.showNotifications = false;
     this.showPasswordModal = true;
-
-    this.passwordForm = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    };
-
+    this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
     this.passwordMessage = '';
     this.passwordMessageType = '';
-
     this.showCurrentPassword = false;
     this.showNewPassword = false;
     this.showConfirmPassword = false;
@@ -196,18 +196,12 @@ export class TopbarComponent implements OnInit {
     this.showPasswordModal = false;
     this.passwordMessage = '';
     this.passwordMessageType = '';
-
-    this.passwordForm = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    };
+    this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-
     if (!file) return;
 
     this.profileMessage = '';
@@ -226,7 +220,6 @@ export class TopbarComponent implements OnInit {
     }
 
     this.selectedFile = file;
-
     const reader = new FileReader();
     reader.onload = () => {
       this.previewUrl = reader.result as string;
@@ -239,7 +232,6 @@ export class TopbarComponent implements OnInit {
     this.previewUrl = '';
     this.selectedFile = null;
     this.editAdmin.avatarUrl = '';
-
     this.profileMessage = 'Profile photo removed. Click Save Changes to apply this update.';
     this.profileMessageType = 'success';
   }
@@ -279,19 +271,15 @@ export class TopbarComponent implements OnInit {
           this.admin = this.mapAdminProfile(res);
           this.editAdmin = { ...this.admin };
           this.previewUrl = this.admin.avatarUrl;
-
           this.profileMessage = 'Your profile has been updated successfully.';
           this.profileMessageType = 'success';
-
           this.savingProfile = false;
           this.cdr.detectChanges();
         },
         error: (err: unknown) => {
           console.error('Failed to update profile:', err);
-
           this.profileMessage = 'Profile update failed. Please try again.';
           this.profileMessageType = 'error';
-
           this.savingProfile = false;
           this.cdr.detectChanges();
         },
@@ -300,15 +288,11 @@ export class TopbarComponent implements OnInit {
 
     if (this.selectedFile) {
       this.adminService.uploadFile(this.selectedFile).subscribe({
-        next: (res) => {
-          saveToBackend(res.url);
-        },
+        next: (res) => saveToBackend(res.url),
         error: (err: unknown) => {
           console.error('Image upload failed:', err);
-
           this.profileMessage = 'Image upload failed. Please try again.';
           this.profileMessageType = 'error';
-
           this.savingProfile = false;
           this.cdr.detectChanges();
         },
@@ -320,7 +304,6 @@ export class TopbarComponent implements OnInit {
 
   updatePassword(): void {
     const { currentPassword, newPassword, confirmPassword } = this.passwordForm;
-
     this.passwordMessage = '';
     this.passwordMessageType = '';
 
@@ -346,29 +329,19 @@ export class TopbarComponent implements OnInit {
 
     this.adminService.changePassword(this.passwordForm).subscribe({
       next: () => {
-        this.passwordMessage =
-          'Your password has been updated successfully. Previous login sessions have been cleared for security reasons.';
+        this.passwordMessage = 'Your password has been updated successfully.';
         this.passwordMessageType = 'success';
         this.changingPassword = false;
-
-        this.passwordForm = {
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        };
-
+        this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
         this.showCurrentPassword = false;
         this.showNewPassword = false;
         this.showConfirmPassword = false;
-
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error('Password change failed:', err);
-
         this.passwordMessage = 'Password change failed. Please try again.';
         this.passwordMessageType = 'error';
-
         this.changingPassword = false;
         this.cdr.detectChanges();
       },
@@ -377,7 +350,8 @@ export class TopbarComponent implements OnInit {
 
   logout(): void {
     localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_refreshToken');
+    this.notificationService.disconnect();
     this.router.navigate(['/login']);
   }
 }

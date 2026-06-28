@@ -34,7 +34,8 @@ export class OrdersComponent implements OnInit {
 
   searchTerm = '';
   statusFilter: OrderFilter = 'ALL';
-
+  sortOrder: 'newest' | 'oldest' = 'newest';
+  
   showDispatchModal = false;
   dispatchOrderData?: Order;
 
@@ -74,32 +75,82 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  applyFilters(): void {
-    let result = [...this.orders];
+applyFilters(): void {
+  let result = [...this.orders];
 
-    if (this.statusFilter !== 'ALL') {
-      result = result.filter((order) => order.orderStatus === this.statusFilter);
-    }
-
-    if (this.searchTerm.trim()) {
-      const query = this.searchTerm.toLowerCase();
-
-      result = result.filter(
-        (order) =>
-          order.orderNumber.toLowerCase().includes(query) ||
-          order.customerName.toLowerCase().includes(query) ||
-          order.customerEmail.toLowerCase().includes(query),
-      );
-    }
-
-    this.filteredOrders = result;
+  if (this.statusFilter !== 'ALL') {
+    result = result.filter((order) => order.orderStatus === this.statusFilter);
   }
+
+  if (this.searchTerm.trim()) {
+    const query = this.searchTerm.toLowerCase();
+    result = result.filter(
+      (order) =>
+        order.orderNumber.toLowerCase().includes(query) ||
+        order.customerName.toLowerCase().includes(query) ||
+        order.customerEmail.toLowerCase().includes(query),
+    );
+  }
+
+  result.sort((a, b) => {
+    const diff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return this.sortOrder === 'newest' ? diff : -diff;
+  });
+
+  this.filteredOrders = result;
+  this.currentPage = 1;
+}
+
+
 
   clearFilters(): void {
     this.searchTerm = '';
     this.statusFilter = 'ALL';
+    this.sortOrder = 'newest';
     this.applyFilters();
   }
+
+
+  currentPage = 1;
+itemsPerPage = 5;
+
+get paginatedOrders(): Order[] {
+  const start = (this.currentPage - 1) * this.itemsPerPage;
+  return this.filteredOrders.slice(start, start + this.itemsPerPage);
+}
+
+get totalPages(): number {
+  return Math.ceil(this.filteredOrders.length / this.itemsPerPage) || 1;
+}
+
+changePage(page: number): void {
+  if (page < 1 || page > this.totalPages) return;
+  this.currentPage = page;
+}
+
+get pageNumbers(): (number | '...')[] {
+  const pages: (number | '...')[] = [];
+  const total = this.totalPages;
+  const current = this.currentPage;
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+
+  pages.push(1);
+  if (current > 3) pages.push('...');
+
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  if (current < total - 2) pages.push('...');
+  pages.push(total);
+
+  return pages;
+}
+
 
   openViewModal(order: Order): void {
     this.selectedOrder = order;

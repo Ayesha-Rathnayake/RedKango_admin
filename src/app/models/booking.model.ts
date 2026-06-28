@@ -10,11 +10,7 @@ export type BookingStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-export type PaymentStatus =
-  | 'PENDING'
-  | 'ADVANCE_PAID'
-  | 'FAILED'
-  | 'CANCELLED';
+export type PaymentStatus = 'PENDING' | 'ADVANCE_PAID' | 'FULLY_PAID' | 'FAILED' | 'CANCELLED';
 
 export interface BookingItem {
   productDbId: number;
@@ -47,6 +43,7 @@ export interface Booking {
 
   bookingStatus: BookingStatus;
   paymentStatus: PaymentStatus;
+  deliveryMethod: 'DELIVERY' | 'PICKUP';
 
   deliveryFullName: string;
   deliveryPhone: string;

@@ -66,8 +66,7 @@
               <p class="text-sm text-gray-700 leading-snug" [class.font-semibold]="!n.read">
                 {{ n.message }}
               </p>
-              <p class="text-xs text-gray-400 mt-0.5">{{ n.time }}</p>
-            </div>
+<p class="text-xs text-gray-400 mt-0.5">{{ notificationService.formatTime(n.createdAt) }}</p>            </div>
 
             <div class="flex items-center gap-1 flex-shrink-0">
               <button

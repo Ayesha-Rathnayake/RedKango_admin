@@ -3,10 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-import {
-  Booking,
-  DispatchRentalRequest,
-} from '../../models/booking.model';
+import { Booking, DispatchRentalRequest } from '../../models/booking.model';
 
 import { AdminService } from '../../services/admin.service';
 
@@ -20,6 +17,7 @@ export class BookingsComponent implements OnInit {
   highlightedId: string | null = null;
 
   bookings: Booking[] = [];
+  filteredBookings: Booking[] = [];
   paginatedBookings: Booking[] = [];
 
   selectedBooking: Booking | null = null;
@@ -30,6 +28,9 @@ export class BookingsComponent implements OnInit {
 
   showDetailsModal = false;
   showDispatchModal = false;
+
+  searchTerm = '';
+  statusFilter = 'ALL';
 
   dispatchForm: DispatchRentalRequest = {
     courierName: '',
@@ -43,7 +44,7 @@ export class BookingsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private adminService: AdminService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -54,9 +55,7 @@ export class BookingsComponent implements OnInit {
         this.highlightedId = params['id'];
 
         setTimeout(() => {
-          const booking = this.bookings.find(
-            (b) => b.bookingNumber === params['id']
-          );
+          const booking = this.bookings.find((b) => b.bookingNumber === params['id']);
 
           if (booking) {
             this.openDetailsModal(booking);
@@ -80,31 +79,62 @@ export class BookingsComponent implements OnInit {
 
     this.adminService.getBookings().subscribe({
       next: (data) => {
-        this.bookings = data;
-        this.totalPages =
-          Math.ceil(this.bookings.length / this.itemsPerPage) || 1;
+        this.bookings = data.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        this.filteredBookings = [...this.bookings];
+        this.applyFilters(false);
 
-        if (this.currentPage > this.totalPages) {
-          this.currentPage = this.totalPages;
-        }
 
-        this.updatePagination();
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.errorMessage =
-          err.error?.message || 'Failed to load rental bookings.';
+        this.errorMessage = err.error?.message || 'Failed to load rental bookings.';
         this.loading = false;
         this.cdr.detectChanges();
       },
     });
   }
+  applyFilters(resetPage = true): void {
+    const term = this.searchTerm.toLowerCase().trim();
+
+    this.filteredBookings = this.bookings.filter((b) => {
+      const matchesSearch =
+        !term ||
+        b.bookingNumber.toLowerCase().includes(term) ||
+        b.customerName.toLowerCase().includes(term) ||
+        b.customerEmail.toLowerCase().includes(term);
+
+      const matchesStatus = this.statusFilter === 'ALL' || b.bookingStatus === this.statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    if (resetPage) {
+      this.currentPage = 1;
+    }
+
+    this.totalPages = Math.ceil(this.filteredBookings.length / this.itemsPerPage) || 1;
+
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+
+    this.updatePagination();
+  }
+
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'ALL';
+    this.applyFilters();
+  }
 
   updatePagination(): void {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    this.paginatedBookings = this.bookings.slice(startIndex, endIndex);
+    this.paginatedBookings = this.filteredBookings.slice(startIndex, endIndex);
     this.cdr.detectChanges();
   }
 
@@ -115,6 +145,29 @@ export class BookingsComponent implements OnInit {
 
     this.currentPage = page;
     this.updatePagination();
+  }
+
+  get pageNumbers(): (number | '...')[] {
+    const pages: (number | '...')[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    pages.push(1);
+    if (current > 3) pages.push('...');
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+
+    return pages;
   }
 
   openDetailsModal(booking: Booking): void {
@@ -166,22 +219,19 @@ export class BookingsComponent implements OnInit {
       return;
     }
 
-    this.adminService
-      .dispatchBooking(this.selectedBooking.bookingId, this.dispatchForm)
-      .subscribe({
-        next: () => {
-          this.successMessage = 'Booking dispatched successfully.';
-          this.errorMessage = '';
-          this.closeDispatchModal();
-          this.closeDetailsModal();
-          this.loadBookings();
-        },
-        error: (err) => {
-          this.errorMessage =
-            err.error?.message || 'Failed to dispatch booking.';
-          this.cdr.detectChanges();
-        },
-      });
+    this.adminService.dispatchBooking(this.selectedBooking.bookingId, this.dispatchForm).subscribe({
+      next: () => {
+        this.successMessage = 'Booking dispatched successfully.';
+        this.errorMessage = '';
+        this.closeDispatchModal();
+        this.closeDetailsModal();
+        this.loadBookings();
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'Failed to dispatch booking.';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   markAsRented(booking: Booking): void {
@@ -193,8 +243,7 @@ export class BookingsComponent implements OnInit {
         this.loadBookings();
       },
       error: (err) => {
-        this.errorMessage =
-          err.error?.message || 'Failed to mark booking as rented.';
+        this.errorMessage = err.error?.message || 'Failed to mark booking as rented.';
         this.cdr.detectChanges();
       },
     });
@@ -209,8 +258,7 @@ export class BookingsComponent implements OnInit {
         this.loadBookings();
       },
       error: (err) => {
-        this.errorMessage =
-          err.error?.message || 'Failed to mark booking as returned.';
+        this.errorMessage = err.error?.message || 'Failed to mark booking as returned.';
         this.cdr.detectChanges();
       },
     });
@@ -225,8 +273,7 @@ export class BookingsComponent implements OnInit {
         this.loadBookings();
       },
       error: (err) => {
-        this.errorMessage =
-          err.error?.message || 'Failed to complete booking.';
+        this.errorMessage = err.error?.message || 'Failed to complete booking.';
         this.cdr.detectChanges();
       },
     });
@@ -237,9 +284,7 @@ export class BookingsComponent implements OnInit {
       return 'No items';
     }
 
-    return booking.items
-      .map((item) => `${item.productName} x ${item.quantity}`)
-      .join(', ');
+    return booking.items.map((item) => `${item.productName} x ${item.quantity}`).join(', ');
   }
 
   getDeliveryAddress(booking: Booking): string {
@@ -279,6 +324,8 @@ export class BookingsComponent implements OnInit {
 
   getPaymentStatusClass(status: string): string {
     switch (status) {
+      case 'FULLY_PAID':
+        return 'bg-teal-100 text-teal-700';
       case 'ADVANCE_PAID':
         return 'bg-green-100 text-green-700';
       case 'FAILED':
@@ -288,5 +335,20 @@ export class BookingsComponent implements OnInit {
       default:
         return 'bg-yellow-100 text-yellow-700';
     }
+  }
+
+  markBalanceCollected(booking: Booking): void {
+    this.adminService.markBalanceCollected(booking.bookingId).subscribe({
+      next: () => {
+        this.successMessage = 'Balance marked as collected.';
+        this.errorMessage = '';
+        this.closeDetailsModal();
+        this.loadBookings();
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'Failed to mark balance collected.';
+        this.cdr.detectChanges();
+      },
+    });
   }
 }

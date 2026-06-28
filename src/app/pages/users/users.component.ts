@@ -29,6 +29,32 @@ export class UsersComponent implements OnInit {
   showDeleteModal = false;
   userToDelete: UserViewModel | null = null;
   deletingUser = false;
+    // Status toggle reason
+  showStatusReasonModal = false;
+  userToToggle: UserViewModel | null = null;
+  statusReason = '';
+  statusNotes = '';
+  statusReasons = [
+    'Suspicious activity under review',
+    'Payment dispute in progress',
+    'Account verification required',
+    'Temporary suspension',
+    'Other',
+  ];
+
+  // Deactivation reason
+  deactivationReason = '';
+  deactivationNotes = '';
+  deactivationReasons = [
+    'Violation of terms and conditions',
+    'Fraudulent activity detected',
+    'Multiple payment failures',
+    'Abusive behaviour reported',
+    'Account security concern',
+    'Requested by user',
+    'Other',
+  ];
+
 
   successMessage = '';
   errorMessage = '';
@@ -134,127 +160,144 @@ export class UsersComponent implements OnInit {
 
   toggleStatus(user: UserViewModel): void {
     if (user.status === 'Deactivated') {
-      this.errorMessage = 'Deactivated users cannot be activated from this action.';
-
-      setTimeout(() => {
-        this.errorMessage = '';
-      }, 4000);
-
+      this.errorMessage = 'Deactivated users cannot be modified.';
+      setTimeout(() => { this.errorMessage = ''; }, 4000);
       return;
     }
 
-    const originalActive = user.active;
-    const originalLocked = user.locked;
-    const originalStatus = user.status;
+    // If making inactive, show reason modal
+    if (user.status === 'Active') {
+      this.showDeleteModal = false;
+      this.userToDelete = null;
+      this.userToToggle = user;
+      this.statusReason = '';
+      this.statusNotes = '';
+      this.showStatusReasonModal = true;
+      return;
+    }
 
-    user.active = !user.active;
-    user.locked = !user.active;
-    user.status = user.active ? 'Active' : 'Inactive';
 
-    this.filteredUsers = [...this.filteredUsers];
-    this.users = [...this.users];
+    // If making active — no reason needed
 
-    this.adminService.updateUserStatus(user.id, user.active).subscribe({
-      next: () => {
-        this.users = this.users.map((u) =>
-          u.id === user.id
-            ? {
-                ...u,
-                active: user.active,
-                locked: user.locked,
-                status: user.status,
-              }
-            : u
-        );
-
-        this.filteredUsers = this.filteredUsers.map((u) =>
-          u.id === user.id
-            ? {
-                ...u,
-                active: user.active,
-                locked: user.locked,
-                status: user.status,
-              }
-            : u
-        );
-      },
-      error: (err: unknown) => {
-        console.error('Failed to update user status', err);
-
-        user.active = originalActive;
-        user.locked = originalLocked;
-        user.status = originalStatus;
-
-        this.filteredUsers = [...this.filteredUsers];
-        this.users = [...this.users];
-      },
-    });
+    this.applyToggleStatus(user, '', '');
   }
 
+  closeStatusReasonModal(): void {
+    this.showStatusReasonModal = false;
+    this.userToToggle = null;
+    this.statusReason = '';
+    this.statusNotes = '';
+  }
+
+  confirmStatusChange(): void {
+    if (!this.userToToggle || !this.statusReason) {
+      this.errorMessage = 'Please select a reason.';
+      setTimeout(() => { this.errorMessage = ''; }, 3000);
+      return;
+    }
+    // Capture reason and notes BEFORE closing modal (which resets them)
+    const user = this.userToToggle;
+    const reason = this.statusReason;
+    const notes = this.statusNotes;
+    this.closeStatusReasonModal();
+    this.applyToggleStatus(user, reason, notes);
+  }
+
+
+  private applyToggleStatus(user: UserViewModel, reason: string, notes: string): void {
+        console.log('toggleStatus called', user.status, user.active);
+
+  const newActive = !user.active;
+  const newStatus = newActive ? 'Active' : 'Inactive';
+
+  const sendReason = !newActive ? (reason || undefined) : undefined;
+  const sendNotes = !newActive ? (notes || undefined) : undefined;
+
+  this.adminService.updateUserStatus(user.id, newActive, sendReason, sendNotes).subscribe({
+    next: () => {
+      this.users = this.users.map((u) =>
+        u.id === user.id
+          ? { ...u, active: newActive, locked: !newActive, status: newStatus }
+          : u
+      );
+      this.filteredUsers = this.filteredUsers.map((u) =>
+        u.id === user.id
+          ? { ...u, active: newActive, locked: !newActive, status: newStatus }
+          : u
+      );
+      if (!newActive) {
+        this.successMessage = 'User suspended. Notification email sent.';
+        setTimeout(() => { this.successMessage = ''; this.cdr.detectChanges(); }, 4000);
+      } else {
+        this.successMessage = 'User activated successfully.';
+        setTimeout(() => { this.successMessage = ''; this.cdr.detectChanges(); }, 3000);
+      }
+      this.cdr.detectChanges();
+    },
+    error: (err: unknown) => {
+      console.error('Failed to update user status', err);
+      this.errorMessage = 'Failed to update user status. Please try again.';
+      setTimeout(() => { this.errorMessage = ''; this.cdr.detectChanges(); }, 4000);
+      this.cdr.detectChanges();
+    },
+  });
+}
+
+
+
   openDeleteModal(user: UserViewModel): void {
+    this.showStatusReasonModal = false;
+    this.userToToggle = null;
     this.userToDelete = user;
+    this.deactivationReason = '';
+    this.deactivationNotes = '';
     this.showDeleteModal = true;
     this.successMessage = '';
     this.errorMessage = '';
   }
 
+
   closeDeleteModal(): void {
     this.showDeleteModal = false;
     this.userToDelete = null;
+    this.deactivationReason = '';
+    this.deactivationNotes = '';
   }
+
 
   confirmDelete(): void {
     if (!this.userToDelete) return;
+    if (!this.deactivationReason) {
+      this.errorMessage = 'Please select a reason for deactivation.';
+      setTimeout(() => { this.errorMessage = ''; }, 3000);
+      return;
+    }
 
     const userId = this.userToDelete.id;
-
     this.deletingUser = true;
 
-    this.adminService.deleteUser(userId).subscribe({
+    this.adminService.deleteUser(userId, this.deactivationReason, this.deactivationNotes || undefined).subscribe({
       next: () => {
-        this.successMessage = 'User account deactivated successfully.';
-
+        this.successMessage = 'User account deactivated. Notification email sent.';
         this.users = this.users.map((u) =>
-          u.id === userId
-            ? {
-                ...u,
-                active: false,
-                locked: true,
-                status: 'Deactivated',
-              }
-            : u
+          u.id === userId ? { ...u, active: false, locked: true, status: 'Deactivated' } : u
         );
-
         this.filteredUsers = this.filteredUsers.map((u) =>
-          u.id === userId
-            ? {
-                ...u,
-                active: false,
-                locked: true,
-                status: 'Deactivated',
-              }
-            : u
+          u.id === userId ? { ...u, active: false, locked: true, status: 'Deactivated' } : u
         );
-
         this.deletingUser = false;
         this.closeDeleteModal();
-
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 4000);
+        setTimeout(() => { this.successMessage = ''; }, 4000);
       },
       error: (err: unknown) => {
         console.error('Failed to deactivate user', err);
-
         this.errorMessage = 'Failed to deactivate user. Please try again.';
         this.deletingUser = false;
-
-        setTimeout(() => {
-          this.errorMessage = '';
-        }, 4000);
+        setTimeout(() => { this.errorMessage = ''; }, 4000);
       },
     });
   }
+
 
   get paginatedUsers(): UserViewModel[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
@@ -271,6 +314,30 @@ export class UsersComponent implements OnInit {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
   }
+
+  get pageNumbers(): (number | '...')[] {
+  const pages: (number | '...')[] = [];
+  const total = this.totalPages;
+  const current = this.currentPage;
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+
+  pages.push(1);
+  if (current > 3) pages.push('...');
+
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  if (current < total - 2) pages.push('...');
+  pages.push(total);
+
+  return pages;
+}
+
 
   trackByUserId(index: number, user: UserViewModel): number {
     return user.id;

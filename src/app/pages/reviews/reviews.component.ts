@@ -9,7 +9,7 @@ import { Review } from '../../models/review.model';
 
 interface AdminReviewViewModel {
   id: number;
-  customer: string;
+  name: string;
   service: string;
   targetType?: string | null;
   rating: number;
@@ -52,7 +52,7 @@ export class ReviewsComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private datePipe: DatePipe,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -81,7 +81,7 @@ export class ReviewsComponent implements OnInit {
   mapReview(review: Review): AdminReviewViewModel {
     return {
       id: review.id,
-      customer: review.name || 'Customer',
+      name: review.name || review.email || 'Unknown',
       service: review.service || review.productName || 'Review',
       targetType: review.targetType,
       rating: review.rating,
@@ -100,15 +100,13 @@ export class ReviewsComponent implements OnInit {
 
       result = result.filter(
         (review) =>
-          review.customer.toLowerCase().includes(query) ||
+          review.name.toLowerCase().includes(query) ||
           review.service.toLowerCase().includes(query) ||
-          review.comment.toLowerCase().includes(query)
+          review.comment.toLowerCase().includes(query),
       );
     }
 
-    result.sort(
-      (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
-    );
+    result.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
 
     this.filteredReviews = result;
     this.currentPage = 1;
@@ -136,8 +134,33 @@ export class ReviewsComponent implements OnInit {
     this.currentPage = page;
   }
 
+  get pageNumbers(): (number | '...')[] {
+    const pages: (number | '...')[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    pages.push(1);
+    if (current > 3) pages.push('...');
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+
+    return pages;
+  }
+
   getStars(rating: number): number[] {
-    return Array(5).fill(0).map((_, index) => (index < rating ? 1 : 0));
+    return Array(5)
+      .fill(0)
+      .map((_, index) => (index < rating ? 1 : 0));
   }
 
   getRatingLabel(rating: number): string {
@@ -165,7 +188,7 @@ export class ReviewsComponent implements OnInit {
     this.selectedReview = null;
     this.replyText = '';
     this.modalSuccessMessage = '';
-    this.modalErrorMessage = '';
+    this.modalErrorMessage = '';``
   }
 
   saveReply(): void {
@@ -179,9 +202,7 @@ export class ReviewsComponent implements OnInit {
       next: (updatedReview: Review) => {
         const mapped = this.mapReview(updatedReview);
 
-        this.reviews = this.reviews.map((review) =>
-          review.id === mapped.id ? mapped : review
-        );
+        this.reviews = this.reviews.map((review) => (review.id === mapped.id ? mapped : review));
 
         this.sortAndFilter();
         this.selectedReview = mapped;
@@ -268,9 +289,7 @@ export class ReviewsComponent implements OnInit {
       next: (updatedReview: Review) => {
         const mapped = this.mapReview(updatedReview);
 
-        this.reviews = this.reviews.map((review) =>
-          review.id === mapped.id ? mapped : review
-        );
+        this.reviews = this.reviews.map((review) => (review.id === mapped.id ? mapped : review));
 
         this.selectedReview = mapped;
         this.replyText = '';
